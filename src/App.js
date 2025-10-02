@@ -26,6 +26,17 @@ export default function App() {
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
 
+  //뒤로가기 스와이프 방지
+  useEffect(() => {
+    history.pushState(null, '', location.href);
+    const onpop = () => {
+      history.pushState(null,'',location.href);
+      setShowStart(true);
+    };
+    window.addEventListener('popstate', onpop);
+    return ()=> window.removeEventListener('popstate', onpop);
+  }, []);
+
   // 게임 효과음
   useEffect(() => { initSfx(); }, []);
 
