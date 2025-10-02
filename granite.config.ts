@@ -6,7 +6,7 @@ export default defineConfig({
   brand: {
     displayName: "스네이크 게임",
     primaryColor: "#3182F6",
-    icon: "",
+    icon: "https://deploysnakegame.netlify.app/terms/icon.png",
     bridgeColorMode: "basic",
   },
   web: {
