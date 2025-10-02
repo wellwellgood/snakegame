@@ -10,9 +10,9 @@ export default defineConfig({
     bridgeColorMode: "basic",
   },
   web: {
-    host: "localhost",
-    port: 3000, // CRA 기본
-    commands: { dev: "react-scripts start", build: "react-scripts build" },
+    host: "https://deploysnakegame.netlify.app/",
+    port: 8082, // CRA 기본
+    commands: { dev: "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start", build: "react-scripts build" },
   },
   outdir: "build",
   permissions: [],

@@ -4,6 +4,7 @@ import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx } from "./publice/sfx.js";
 
+
 // mm:ss.cs (분은 누적표시)
 const fmtMs = (ms) => {
   const totalMin = Math.floor(ms / 60000);
@@ -30,11 +31,11 @@ export default function App() {
   useEffect(() => {
     history.pushState(null, '', location.href);
     const onpop = () => {
-      history.pushState(null,'',location.href);
+      history.pushState(null, '', location.href);
       setShowStart(true);
     };
     window.addEventListener('popstate', onpop);
-    return ()=> window.removeEventListener('popstate', onpop);
+    return () => window.removeEventListener('popstate', onpop);
   }, []);
 
   // 게임 효과음
@@ -82,8 +83,8 @@ export default function App() {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 16 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", width: "min(640px,94vw)" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 30}}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", width: "min(640px,94vw)", padding: (0,10) }}>
         <b style={{ fontSize: 16 }}>Snake with Scoreboard</b>
         <button
           onClick={() => setOpen((v) => !v)}
@@ -94,7 +95,7 @@ export default function App() {
       </div>
 
       {/* 게임 영역 */}
-      <div style={{ position: "relative", width: "min(640px,94vw)" }}>
+      <div style={{ position: "relative" }}>
         <SnakeGame
           onGameOver={onGameOver}
           hideStartUI={showStart}

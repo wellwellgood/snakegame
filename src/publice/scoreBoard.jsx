@@ -12,7 +12,7 @@ export default function Scoreboard({
   return (
     <div
       style={{
-        width: "min(640px,94vw)",
+        // width: "min(640px,94vw)",
         background: "#fff",
         border: "1px solid #e5e7eb",
         borderRadius: 12,

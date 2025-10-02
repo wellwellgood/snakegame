@@ -10,10 +10,10 @@ export default defineConfig({
   },
   webViewProps: { type: 'game' },
   web: {
-    host: '0.0.0.0',
-    port: 8081,
+    host: 'https://deploysnakegame.netlify.app/',
+    port: 8082,
     commands: {
-      dev: 'cross-env HOST=0.0.0.0 PORT=8081 react-scripts start',
+      dev: 'cross-env HOST=0.0.0.0 PORT=8082 react-scripts start',
       build: 'react-scripts build',
     },
   },
