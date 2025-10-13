@@ -1,3 +1,7 @@
+:root {
+  --app-font:"Press Start 2P", system-ui;
+}
+
 .App {
   text-align: center;
 }

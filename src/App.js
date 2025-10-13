@@ -3,7 +3,6 @@ import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx } from "./publice/sfx.js";
-import { setIosSwipeGestureEnabled } from '@apps-in-toss/web-framework';
 
 
 // mm:ss.cs (분은 누적표시)
@@ -28,11 +27,29 @@ export default function App() {
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
 
-  //뒤로가기 스와이프 방지
   useEffect(() => {
-    setIosSwipeGestureEnabled({ isEnabled:false});
-    return () => { setIosSwipeGestureEnabled({ isEnabled:true}); }
-  }, [])
+    const isAit =
+      typeof window !== "undefined" &&
+      (window.ReactNativeWebView ||
+        (window.webkit && window.webkit.messageHandlers));
+    if (!isAit) return;
+  
+    let mounted = true;
+  
+    // enable off
+    import("@apps-in-toss/web-framework").then(mod => {
+      if (!mounted) return;
+      mod.setIosSwipeGestureEnabled({ isEnabled: false });
+    });
+  
+    return () => {
+      mounted = false;
+      // enable on
+      import("@apps-in-toss/web-framework").then(mod => {
+        mod.setIosSwipeGestureEnabled({ isEnabled: true });
+      });
+    };
+  }, []);
 
   // 게임 효과음
   useEffect(() => { initSfx(); }, []);
@@ -79,19 +96,41 @@ export default function App() {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 30}}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", width: "min(640px,94vw)", padding: (0,10) }}>
-        <b style={{ fontSize: 16 }}>Snake with Scoreboard</b>
-        <button
+    <div style={{ display: "flex", flexDirection: "column", paddingTop: 100}}>
+
+      {/* 게임 영역 */}
+      <div style={{ position: "relative" }}>
+      <div
+    style={{
+      position: "absolute",
+      top: 12,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "90%",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      zIndex: 30, // 오버레이보다 위
+    }}
+  >
+    <h1
+      style={{
+        fontFamily: "PressStart2P, monospace",
+        fontSize: 20,
+        color: "#E6F7FF",
+        textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+      }}
+    >
+      <b style={{ fontSize: 20 ,fontFamily: "Press Start 2P"}}>Snake with Scoreboard</b>
+    </h1>
+    <button
           onClick={() => setOpen((v) => !v)}
           style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
         >
           {open ? "Hide Board" : "Show Board"}
-        </button>
-      </div>
+    </button>
+  </div>
 
-      {/* 게임 영역 */}
-      <div style={{ position: "relative" }}>
         <SnakeGame
           onGameOver={onGameOver}
           hideStartUI={showStart}
