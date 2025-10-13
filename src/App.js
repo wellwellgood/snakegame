@@ -3,6 +3,7 @@ import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx } from "./publice/sfx.js";
+import { setIosSwipeGestureEnabled } from '@apps-in-toss/web-framework';
 
 
 // mm:ss.cs (분은 누적표시)
@@ -29,14 +30,9 @@ export default function App() {
 
   //뒤로가기 스와이프 방지
   useEffect(() => {
-    history.pushState(null, '', location.href);
-    const onpop = () => {
-      history.pushState(null, '', location.href);
-      setShowStart(true);
-    };
-    window.addEventListener('popstate', onpop);
-    return () => window.removeEventListener('popstate', onpop);
-  }, []);
+    setIosSwipeGestureEnabled({ isEnabled:false});
+    return () => { setIosSwipeGestureEnabled({ isEnabled:true}); }
+  }, [])
 
   // 게임 효과음
   useEffect(() => { initSfx(); }, []);
