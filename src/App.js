@@ -109,24 +109,7 @@ export default function App() {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column"}}>
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center"}}>
-        {showLogo && (
-          <img
-            src={ALL}
-            alt="ALL"
-            style={{
-              width: 60,
-              height: 60,
-              margin: 10,
-              opacity: fade ? 0 : 1,
-              transition: "opacity 0.8s ease-in-out",
-              willChange: "opacity",
-              pointerEvents: "none",
-            }}
-          />
-        )}
-      </div>
+    <div style={{ display: "flex", flexDirection: "column" }}>
 
       {/* 게임 영역 */}
       <div style={{ position: "relative" }}>
@@ -151,14 +134,36 @@ export default function App() {
               textShadow: "0 2px 6px rgba(0,0,0,0.4)",
             }}
           >
-            <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake with Scoreboard</b>
+            <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake Game</b>
           </h1>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
-          >
-            {open ? "Hide Board" : "Show Board"}
-          </button>
+          <div style={{position: "relative"}}>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
+            >
+              {open ? "Hide Score" : "Show Score"}
+            </button>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+              {showLogo && (
+                <img
+                  src={ALL}
+                  alt="ALL"
+                  style={{
+                    position: "absolute",
+                    top: 40,
+                    right: 0,
+                    width: 60,
+                    height: 60,
+                    margin: 10,
+                    opacity: fade ? 0 : 1,
+                    transition: "opacity 0.8s ease-in-out",
+                    willChange: "opacity",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
+            </div>
+          </div>
         </div>
 
         <SnakeGame

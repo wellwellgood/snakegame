@@ -2,22 +2,33 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
-const isDev = !app.isPackaged;
-
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        webPreferences: { nodeIntegration: false, contextIsolation: true },
+        width: 806,
+        height: 836,
+        backgroundColor: "#111",
+        webPreferences: { contextIsolation: true },
     });
 
-    if (isDev) {
-        win.loadURL("http://localhost:3000"); // Vite면 5173
-        win.webContents.openDevTools();
+    // 에러/상태 로그
+    win.webContents.on("did-fail-load", (e, code, desc, url) => {
+        console.error("did-fail-load:", code, desc, url);
+        win.loadURL("data:text/plain;charset=utf-8," + encodeURIComponent(`Load fail:\n${code} ${desc}\n${url}`));
+    });
+    win.webContents.on("render-process-gone", (_, details) => {
+        console.error("render gone:", details);
+    });
+
+    const DEV_URL = "http://127.0.0.1:8082";
+    if (!app.isPackaged) {
+        win.loadURL(DEV_URL);
+        win.webContents.openDevTools({ mode: "detach" });
     } else {
-        win.loadFile(path.join(__dirname, "../build/index.html")); // CRA build 결과
+        const indexPath = path.resolve(__dirname, "../build/index.html");
+        win.loadFile(indexPath);
     }
 }
+
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());
 app.on("activate", () => BrowserWindow.getAllWindows().length === 0 && createWindow());

@@ -7,8 +7,9 @@
   "scripts": {
     "start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start",
     "web:build": "react-scripts build",
-    "electron": "wait-on http://localhost:8082 && electron .",
-    "dev": "concurrently \"npm run start\" \"npm run electron\"",
+    "build": "bedrock build",
+    "electron": "wait-on http-get://127.0.0.1:8082 --log -t 60000 && electron .",
+    "dev": "concurrently -k \"npm run start\" \"npm run electron\"",
     "dist": "npm run web:build && electron-builder"
   },
   "author": "",
@@ -29,14 +30,31 @@
     "wait-on": "^8.0.5"
   },
   "build": {
+    "extends": null,
     "appId": "com.snakegame.app",
     "productName": "SnakeGame",
-    "directories": { "output": "dist" },
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "build/**/*",
       "electron/**/*",
       "package.json"
     ],
-    "win": { "target": "nsis" }
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
