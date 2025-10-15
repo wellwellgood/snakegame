@@ -5,9 +5,8 @@
   "main": "bedrock.config.js",
   "homepage": ".",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bedrock dev",
-    "build": "bedrock build",
+    "dev": "granite dev",
+    "build": "granite build",
     "deploy": "ait deploy",
     "web:build": "react-scripts build",
     "start": "npm run web:start",
@@ -16,7 +15,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@apps-in-toss/web-framework": "^0.0.40",
+    "@apps-in-toss/framework": "^1.1.2",
+    "@apps-in-toss/web-framework": "^1.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "^5.0.1",
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
+    "react-refresh": "^0.14.0",
     "react-scripts": "5.0.1"
   },
   "browserslist": {

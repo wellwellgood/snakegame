@@ -4,6 +4,8 @@ import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx } from "./publice/sfx.js";
 
+import ALL from "./img/ALL.png";
+
 
 // mm:ss.cs (분은 누적표시)
 const fmtMs = (ms) => {
@@ -27,21 +29,32 @@ export default function App() {
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
 
+  // 이미지 3초 노출
+  const [showLogo, setShowLogo] = useState(true);
+  const [fade, setFade] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setFade(true), 3000);   // 3초 후 페이드 시작
+    const t2 = setTimeout(() => setShowLogo(false), 3800); // 0.8초 후 DOM 제거
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  // iOS 스와이프 제스처 방지
   useEffect(() => {
     const isAit =
       typeof window !== "undefined" &&
       (window.ReactNativeWebView ||
         (window.webkit && window.webkit.messageHandlers));
     if (!isAit) return;
-  
+
     let mounted = true;
-  
+
     // enable off
     import("@apps-in-toss/web-framework").then(mod => {
       if (!mounted) return;
       mod.setIosSwipeGestureEnabled({ isEnabled: false });
     });
-  
+
     return () => {
       mounted = false;
       // enable on
@@ -96,40 +109,57 @@ export default function App() {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", paddingTop: 100}}>
+    <div style={{ display: "flex", flexDirection: "column"}}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center"}}>
+        {showLogo && (
+          <img
+            src={ALL}
+            alt="ALL"
+            style={{
+              width: 60,
+              height: 60,
+              margin: 10,
+              opacity: fade ? 0 : 1,
+              transition: "opacity 0.8s ease-in-out",
+              willChange: "opacity",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+      </div>
 
       {/* 게임 영역 */}
       <div style={{ position: "relative" }}>
-      <div
-    style={{
-      position: "absolute",
-      top: 12,
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: "90%",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      zIndex: 30, // 오버레이보다 위
-    }}
-  >
-    <h1
-      style={{
-        fontFamily: "PressStart2P, monospace",
-        fontSize: 20,
-        color: "#E6F7FF",
-        textShadow: "0 2px 6px rgba(0,0,0,0.4)",
-      }}
-    >
-      <b style={{ fontSize: 20 ,fontFamily: "Press Start 2P"}}>Snake with Scoreboard</b>
-    </h1>
-    <button
-          onClick={() => setOpen((v) => !v)}
-          style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "90%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            zIndex: 30, // 오버레이보다 위
+          }}
         >
-          {open ? "Hide Board" : "Show Board"}
-    </button>
-  </div>
+          <h1
+            style={{
+              fontFamily: "PressStart2P, monospace",
+              fontSize: 20,
+              color: "#E6F7FF",
+              textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+            }}
+          >
+            <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake with Scoreboard</b>
+          </h1>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
+          >
+            {open ? "Hide Board" : "Show Board"}
+          </button>
+        </div>
 
         <SnakeGame
           onGameOver={onGameOver}
@@ -163,17 +193,24 @@ export default function App() {
                 type="button"
                 onClick={() => { resumeSfx(); setCounting(true); }}
                 style={{
-                  padding: "12px 22px",
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  padding: "12px 16px",
                   borderRadius: 999,
                   border: "2px solid #9FE8FF",
                   background: "#1FD3FF",
                   color: "#081146",
                   fontWeight: 700,
                   boxShadow: "0 6px 18px rgba(0,0,0,.25)",
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  fontSize: 24,
+                  letterSpacing: 6,
                 }}
               >
-                ▶
+                {/* ▶ */}
+                PLAY
               </button>
             )}
           </div>
