@@ -1,16 +1,15 @@
 {
   "name": "snakegame",
   "version": "1.0.0",
-  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
-  "main": "bedrock.config.js",
+  "description": "Snake game packaged with Electron",
+  "main": "electron/main.js",
   "homepage": ".",
   "scripts": {
-    "dev": "granite dev",
-    "build": "granite build",
-    "deploy": "ait deploy",
+    "start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start",
     "web:build": "react-scripts build",
-    "start": "npm run web:start",
-    "web:start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start"
+    "electron": "wait-on http://localhost:8082 && electron .",
+    "dev": "concurrently \"npm run start\" \"npm run electron\"",
+    "dist": "npm run web:build && electron-builder"
   },
   "author": "",
   "license": "ISC",
@@ -23,20 +22,21 @@
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
-    "react-refresh": "^0.14.0",
-    "react-scripts": "5.0.1"
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.5"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+  "build": {
+    "appId": "com.snakegame.app",
+    "productName": "SnakeGame",
+    "directories": { "output": "dist" },
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "package.json"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "win": { "target": "nsis" }
   }
 }
