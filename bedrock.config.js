@@ -1,4 +1,8 @@
-export default{
+import { defineConfig } from '@apps-in-toss/web-framework/config'
+
+export default defineConfig({
+    platform: 'web',
     appName: 'snakegame',
-    entry: 'src/App.js',
-}
+    output: 'dist',
+    plugins: [],
+})

@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
 :root {
   --app-font:"Press Start 2P", system-ui;
+  --app-font2:"Jersey 10", sans-serif;
 }
 
 .App {
