@@ -1,7 +1,8 @@
-// WebAudio 기반 초저지연 SFX
+// publice/sfx.js
 import eatUrl from "./assets/gameSoundEffect.mp3";
 
 let ctx, eatBuf;
+
 export async function initSfx() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (!eatBuf) {
@@ -10,13 +11,24 @@ export async function initSfx() {
     eatBuf = await ctx.decodeAudioData(arr);
   }
 }
-export function resumeSfx() { ctx?.resume().catch(() => {}); }
+
+export function resumeSfx() {
+  ctx?.resume().catch(() => {});
+}
+
+// ✅ 효과음 토글 반영 (App.js → sfx.js)
+export function setSfxMuted(muted) {
+  window.__SNAKE_SFX_MUTED = muted;
+}
+
+// ✅ 실제 재생
 export function playEat() {
+  if (window.__SNAKE_SFX_MUTED) return; // ← 핵심 가드 추가
   if (!ctx || !eatBuf) return;
   const src = ctx.createBufferSource();
   src.buffer = eatBuf;
   const gain = ctx.createGain();
   gain.gain.value = 0.6;
   src.connect(gain).connect(ctx.destination);
-  src.start(0); // 즉시 재생
+  src.start(0);
 }

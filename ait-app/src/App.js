@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
-import { initSfx, resumeSfx } from "./publice/sfx.js";
+import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
 
 import ALL from "./img/ALL.png";
 import Setting from "./img/setting.png";
@@ -37,23 +37,29 @@ export default function App() {
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
   const bgmRef = useRef(null);
 
+  // 초기 전역 플래그 1회 세팅
+  useEffect(() => { initSfx(); }, []);
+
   useEffect(() => {
-    if (window.__SNAKE_SFX_MUTED) return;
-    const audio = new Audio("/audio/eat.mp3");
-    audio.volume = 0.8;
-    audio.play();
+    if (typeof window === "undefined") return;
+    window.__SNAKE_SFX_MUTED = !sfxOn;
+    window.__SNAKE_BGM_MUTED = !bgmOn;
   }, []);
 
+  // SFX 토글 반영
   useEffect(() => {
     localStorage.setItem("snake_sfx", sfxOn ? "on" : "off");
-    window.__SNAKE_SFX_MUTED = !sfxOn;
+    setSfxMuted(!sfxOn);
   }, [sfxOn]);
 
+  // BGM 토글 반영
   useEffect(() => {
+    if (typeof window === "undefined") return;
     localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
     window.__SNAKE_BGM_MUTED = !bgmOn;
   }, [bgmOn]);
 
+  // BGM 실제 재생/정지
   useEffect(() => {
     const a = bgmRef.current;
     if (!a) return;
