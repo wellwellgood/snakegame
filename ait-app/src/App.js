@@ -6,6 +6,7 @@ import { initSfx, resumeSfx } from "./publice/sfx.js";
 
 import ALL from "./img/ALL.png";
 import Setting from "./img/setting.png";
+import BGM from "./publice/assets/Pixel Parade.mp3"
 
 
 // mm:ss.cs (분은 누적표시)
@@ -32,6 +33,26 @@ export default function App() {
 
   // 설정창
   const [showSetting, setShowSetting] = useState(false);
+  const [sfxOn, setSfxOn] = useState(() => localStorage.getItem("snake_sfx") !== "off");
+  const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
+  const bgmRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem("snake_sfx", sfxOn ? "on" : "off");
+    window.__SNAKE_SFX_MUTED = !sfxOn;
+  }, [sfxOn]);
+
+  useEffect(() => {
+    localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
+    window.__SNAKE_BGM_MUTED = !bgmOn;
+  }, [bgmOn]);
+
+  useEffect(() => {
+    const a = bgmRef.current;
+    if (!a) return;
+    if (bgmOn) a.play().catch(() => { });
+    else a.pause();
+  }, [bgmOn]);
 
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
@@ -114,7 +135,8 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-
+      {/* BGM 영역 */}
+      <audio ref={bgmRef} src={BGM} loop preload="auto" />
       {/* 게임 영역 */}
       <div style={{ position: "relative" }}>
         <div
@@ -178,164 +200,172 @@ export default function App() {
                       style={{
                         width: 50,
                         height: 50,
-                        // border: "1px solid #fff",
-                        // background: "#000",
-                        cursor: "pointer",
-                      }}
-                    />
+                        border: "1px solid #fff",
+                        background: "#888",
+                        cursor: "pointer"
+                      }} />
                   </div>
                 </div>
               </div>
               {/* ✅ 설정창 오버레이 */}
               {showSetting && (
                 <div
-                  onClick={() => setShowSetting(false)} // 바깥 클릭 시 닫힘
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.6)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    zIndex: 50,
-                  }}
+                  onClick={() => setShowSetting(false)}
+                  style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50 }}
                 >
                   <div
-                    onClick={(e) => e.stopPropagation()} // 내부 클릭시 닫히지 않게
-                    style={{
-                      position: "absolute",
-                      top: "670%",
-                      width: 300,
-                      padding: 20,
-                      borderRadius: 12,
-                      background: "#fff",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
-                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{position: "absolute", top: "670%", width: 340, padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 8px 20px rgba(0,0,0,.3)" }}
                   >
-                    <h2 style={{ marginBottom: 16 }}>설정</h2>
-                    <p>여기에 설정 내용 넣기</p>
-                    <button
-                      onClick={() => setShowSetting(false)}
-                      style={{
-                        padding: "6px 10px",
-                        border: "1px solid #ddd",
-                        borderRadius: 6,
-                        background: "#eee",
-                        cursor: "pointer",
-                      }}
-                    >
-                      닫기
-                    </button>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <h2 style={{ margin: 0, fontSize: 18 }}>설정</h2>
+                      <button onClick={() => setShowSetting(false)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, background: "#eee", cursor: "pointer" }}>
+                        닫기
+                      </button>
+                    </div>
+
+                    {/* 효과음 */}
+                    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>효과음</span>
+                      <button
+                        onClick={() => setSfxOn(v => !v)}
+                        aria-pressed={sfxOn}
+                        style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: sfxOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
+                      >
+                        <span style={{ position: "absolute", top: 3, left: sfxOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .2s" }} />
+                      </button>
+                    </div>
+
+                    {/* 배경음 */}
+                    <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>배경음악</span>
+                      <button
+                        onClick={() => setBgmOn(v => !v)}
+                        aria-pressed={bgmOn}
+                        style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: bgmOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
+                      >
+                        <span style={{ position: "absolute", top: 3, left: bgmOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .2s" }} />
+                      </button>
+                    </div>
+
+                    <p style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
+                      효과음과 배경음을 개별로 제어합니다.
+                    </p>
                   </div>
                 </div>
               )}
             </div>
-        </div>
-      </div>
-
-      <SnakeGame
-        onGameOver={onGameOver}
-        hideStartUI={showStart}
-        autoStartTick={autoStartTick}
-      />
-
-      {/* 시작 오버레이: 버튼 클릭 → 카운트다운 → 자동 시작 */}
-      {showStart && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            background: "rgba(2,1,127,0.28)", // 배경 #02017F 톤
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            zIndex: 20
-          }}
-        >
-          {counting ? (
-            <div style={{ textAlign: "center" }} aria-live="assertive" role="status">
-              <div style={{ fontSize: 64, fontWeight: 800, color: "#E6F7FF", textShadow: "0 2px 10px rgba(0,0,0,.35)" }}>
-                {count}
-              </div>
-              <div style={{ marginTop: 6, fontSize: 12, color: "#CFE9FF", opacity: 0.9 }}>Get Ready</div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => { resumeSfx(); setCounting(true); }}
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                padding: "12px 16px",
-                borderRadius: 999,
-                border: "2px solid #9FE8FF",
-                background: "#1FD3FF",
-                color: "#081146",
-                fontWeight: 700,
-                boxShadow: "0 6px 18px rgba(0,0,0,.25)",
-                cursor: "pointer",
-                fontSize: 24,
-                letterSpacing: 6,
-              }}
-            >
-              {/* ▶ */}
-              PLAY
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* 스코어보드 오버레이 */}
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 10
-          }}
-          onClick={() => setOpen(false)}
-        >
-          <div
-            ref={boardRef}
-            style={{
-              width: "min(620px,94vw)",
-              maxHeight: "90%",
-              // overflow: "auto",
-              background: "#fff",
-              borderRadius: 12,
-              padding: 16,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <b>Scoreboard</b>
-              <button
-                onClick={() => setOpen(false)}
-                style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer" }}
-              >
-                Close
-              </button>
-            </div>
-            <Scoreboard
-              open={true}
-              records={records}
-              name={name}
-              onNameChange={setName}
-              onClear={onClear}
-              fmtMs={fmtMs}
-            />
           </div>
         </div>
-      )}
-    </div>
+
+        <SnakeGame
+          onGameOver={onGameOver}
+          hideStartUI={showStart}
+          autoStartTick={autoStartTick}
+        />
+
+        {/* 시작 오버레이: 버튼 클릭 → 카운트다운 → 자동 시작 */}
+        {showStart && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              background: "rgba(2,1,127,0.28)", // 배경 #02017F 톤
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 20
+            }}
+          >
+            {counting ? (
+              <div style={{ textAlign: "center" }} aria-live="assertive" role="status">
+                <div style={{ fontSize: 64, fontWeight: 800, color: "#E6F7FF", textShadow: "0 2px 10px rgba(0,0,0,.35)" }}>
+                  {count}
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12, color: "#CFE9FF", opacity: 0.9 }}>Get Ready</div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (sfxOn) resumeSfx();
+                  if (bgmOn && bgmRef.current) bgmRef.current.play().catch(() => { });
+                  setCounting(true);
+                }}
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  padding: "12px 16px",
+                  borderRadius: 999,
+                  border: "2px solid #9FE8FF",
+                  background: "#1FD3FF",
+                  color: "#081146",
+                  fontWeight: 700,
+                  boxShadow: "0 6px 18px rgba(0,0,0,.25)",
+                  cursor: "pointer",
+                  fontSize: 24,
+                  letterSpacing: 6,
+                }}
+              >
+                {/* ▶ */}
+                PLAY
+              </button>
+            )}
+          </div>
+        )}
+        if (window.__SNAKE_SFX_MUTED) return;
+
+        {/* 스코어보드 오버레이 */}
+        {open && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.5)",
+              zIndex: 10
+            }}
+            onClick={() => setOpen(false)}
+          >
+            <div
+              ref={boardRef}
+              style={{
+                width: "min(620px,94vw)",
+                maxHeight: "90%",
+                // overflow: "auto",
+                background: "#fff",
+                borderRadius: 12,
+                padding: 16,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <b>Scoreboard</b>
+                <button
+                  onClick={() => setOpen(false)}
+                  style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer" }}
+                >
+                  Close
+                </button>
+              </div>
+              <Scoreboard
+                open={true}
+                records={records}
+                name={name}
+                onNameChange={setName}
+                onClear={onClear}
+                fmtMs={fmtMs}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div >
   );
 }
