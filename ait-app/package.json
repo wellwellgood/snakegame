@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "granite dev",
-    "build": "npm run web:build && powershell -NoProfile -ExecutionPolicy Bypass -File .\\pack-ait.ps1",
+    "build": "granite build",
     "deploy": "ait deploy",
     "web:build": "react-scripts build",
     "start": "npm run web:start",
@@ -16,7 +16,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@apps-in-toss/framework": "1.0.3",
     "@apps-in-toss/web-framework": "1.0.3",
     "@granite-js/plugin-router": "0.1.21",
     "@toss-design-system/mobile": "2.1.0",
@@ -28,6 +27,7 @@
   },
   "devDependencies": {
     "@apps-in-toss/cli": "^1.0.0",
+    "@granite-js/cli": "0.1.28",
     "@granite-js/plugin-router": "0.1.21",
     "cross-env": "^7.0.3",
     "react-refresh": "0.18.0",
