@@ -1,4 +1,4 @@
 [build]
-base = "snakegame"   # 하위 폴더명
-command = "npm run web:build"
+base = "ait-app"
+command = "npm ci && npm run web:build"
 publish = "build"
