@@ -1,4 +1,7 @@
 [build]
-base = "ait-app"
-command = "npm ci && npm run web:build"
-publish = "build"
+  base = "ait-app"
+  publish = "ait-app/build"
+  command = "npm install --no-audit --no-fund && npm run web:build"
+
+[build.environment]
+  NODE_VERSION = "18.20.3"

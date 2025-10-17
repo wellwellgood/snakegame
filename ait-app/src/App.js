@@ -37,10 +37,12 @@ export default function App() {
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
   const bgmRef = useRef(null);
 
-  if (window.__SNAKE_SFX_MUTED) return;
-  const audio = new Audio("/audio/eat.mp3");
-  audio.volume = 0.8;
-  audio.play();
+  useEffect(() => {
+    if (window.__SNAKE_SFX_MUTED) return;
+    const audio = new Audio("/audio/eat.mp3");
+    audio.volume = 0.8;
+    audio.play();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("snake_sfx", sfxOn ? "on" : "off");
