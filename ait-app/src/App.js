@@ -78,22 +78,11 @@ export default function App() {
       (window.ReactNativeWebView ||
         (window.webkit && window.webkit.messageHandlers));
     if (!isAit) return;
-
-    let mounted = true;
-
-    // enable off
-    import("@apps-in-toss/web-framework").then(mod => {
-      if (!mounted) return;
-      mod.setIosSwipeGestureEnabled({ isEnabled: false });
-    });
-
-    return () => {
-      mounted = false;
-      // enable on
-      import("@apps-in-toss/web-framework").then(mod => {
-        mod.setIosSwipeGestureEnabled({ isEnabled: true });
-      });
-    };
+    // AIT 런타임에서만 동작하도록, 외부 패키지 import 불가
+    const api = window.__AIT_API__;
+    if (!api?.setIosSwipeGestureEnabled) return;
+    api.setIosSwipeGestureEnabled({ isEnabled: false });
+    return () => api.setIosSwipeGestureEnabled({ isEnabled: true });
   }, []);
 
   // 게임 효과음
@@ -222,7 +211,7 @@ export default function App() {
                 >
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    style={{position: "absolute", top: "670%", width: 340, padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 8px 20px rgba(0,0,0,.3)" }}
+                    style={{ position: "absolute", top: "670%", width: 340, padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 8px 20px rgba(0,0,0,.3)" }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <h2 style={{ margin: 0, fontSize: 18 }}>설정</h2>
