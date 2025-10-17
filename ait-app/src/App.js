@@ -30,6 +30,9 @@ export default function App() {
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
 
+  // 설정창
+  const [showSetting, setShowSetting] = useState(false);
+
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);
@@ -122,40 +125,40 @@ export default function App() {
             transform: "translateX(-50%)",
             width: "90%",
             display: "flex",
+            flexDirection: "column",
             justifyContent: "space-between",
             alignItems: "center",
             zIndex: 30, // 오버레이보다 위
           }}
         >
-          <h1
-            style={{
-              fontFamily: "PressStart2P, monospace",
-              fontSize: 20,
-              color: "#E6F7FF",
-              textShadow: "0 2px 6px rgba(0,0,0,0.4)",
-            }}
-          >
-            <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake Game</b>
-          </h1>
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%", display: "flex" }}>
+            <h1
+              style={{
+                fontFamily: "PressStart2P, monospace",
+                fontSize: 20,
+                color: "#E6F7FF",
+                textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+              }}
+            >
+              <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake Game</b>
+            </h1>
             <button
               onClick={() => setOpen((v) => !v)}
               style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
             >
               {open ? "Hide Score" : "Show Score"}
             </button>
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "relative" }}>
+          </div>
+          <div style={{ position: "relative", marginTop: 10, display: "flex", width: "100%", alignContent: "center", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "abssolute", width: 100 }}>
               {showLogo && (
                 <img
                   src={ALL}
                   alt="ALL"
                   style={{
-                    position: "absolute",
-                    top: 10,
                     right: 0,
                     width: 60,
                     height: 60,
-                    margin: 10,
                     opacity: fade ? 0 : 1,
                     transition: "opacity 0.8s ease-in-out",
                     willChange: "opacity",
@@ -166,132 +169,173 @@ export default function App() {
               <div>
                 <div
                   style={{
-                    position: "absolute",
+                    // position: "absolute",
                     top: 10,
                     right: 0,
-                    width: 60,
-                    height: 60,
-                    margin: 10,
                   }}>
-                  <div>
+                  <div onClick={() => setShowSetting(true)}>
                     <img src={Setting}
                       style={{
-                        width: 60,
-                        height: 60,
-                        border: "1px solid #fff",
-                        background: "#888",
-                      }} />
+                        width: 50,
+                        height: 50,
+                        // border: "1px solid #fff",
+                        // background: "#000",
+                        cursor: "pointer",
+                      }}
+                    />
                   </div>
                 </div>
               </div>
-
+              {/* ✅ 설정창 오버레이 */}
+              {showSetting && (
+                <div
+                  onClick={() => setShowSetting(false)} // 바깥 클릭 시 닫힘
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.6)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 50,
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()} // 내부 클릭시 닫히지 않게
+                    style={{
+                      position: "absolute",
+                      top: "670%",
+                      width: 300,
+                      padding: 20,
+                      borderRadius: 12,
+                      background: "#fff",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <h2 style={{ marginBottom: 16 }}>설정</h2>
+                    <p>여기에 설정 내용 넣기</p>
+                    <button
+                      onClick={() => setShowSetting(false)}
+                      style={{
+                        padding: "6px 10px",
+                        border: "1px solid #ddd",
+                        borderRadius: 6,
+                        background: "#eee",
+                        cursor: "pointer",
+                      }}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+        </div>
+      </div>
+
+      <SnakeGame
+        onGameOver={onGameOver}
+        hideStartUI={showStart}
+        autoStartTick={autoStartTick}
+      />
+
+      {/* 시작 오버레이: 버튼 클릭 → 카운트다운 → 자동 시작 */}
+      {showStart && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            background: "rgba(2,1,127,0.28)", // 배경 #02017F 톤
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            zIndex: 20
+          }}
+        >
+          {counting ? (
+            <div style={{ textAlign: "center" }} aria-live="assertive" role="status">
+              <div style={{ fontSize: 64, fontWeight: 800, color: "#E6F7FF", textShadow: "0 2px 10px rgba(0,0,0,.35)" }}>
+                {count}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12, color: "#CFE9FF", opacity: 0.9 }}>Get Ready</div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { resumeSfx(); setCounting(true); }}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                padding: "12px 16px",
+                borderRadius: 999,
+                border: "2px solid #9FE8FF",
+                background: "#1FD3FF",
+                color: "#081146",
+                fontWeight: 700,
+                boxShadow: "0 6px 18px rgba(0,0,0,.25)",
+                cursor: "pointer",
+                fontSize: 24,
+                letterSpacing: 6,
+              }}
+            >
+              {/* ▶ */}
+              PLAY
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 스코어보드 오버레이 */}
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 10
+          }}
+          onClick={() => setOpen(false)}
+        >
+          <div
+            ref={boardRef}
+            style={{
+              width: "min(620px,94vw)",
+              maxHeight: "90%",
+              // overflow: "auto",
+              background: "#fff",
+              borderRadius: 12,
+              padding: 16,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <b>Scoreboard</b>
+              <button
+                onClick={() => setOpen(false)}
+                style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer" }}
+              >
+                Close
+              </button>
+            </div>
+            <Scoreboard
+              open={true}
+              records={records}
+              name={name}
+              onNameChange={setName}
+              onClear={onClear}
+              fmtMs={fmtMs}
+            />
           </div>
         </div>
-
-        <SnakeGame
-          onGameOver={onGameOver}
-          hideStartUI={showStart}
-          autoStartTick={autoStartTick}
-        />
-
-        {/* 시작 오버레이: 버튼 클릭 → 카운트다운 → 자동 시작 */}
-        {showStart && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "grid",
-              placeItems: "center",
-              background: "rgba(2,1,127,0.28)", // 배경 #02017F 톤
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              zIndex: 20
-            }}
-          >
-            {counting ? (
-              <div style={{ textAlign: "center" }} aria-live="assertive" role="status">
-                <div style={{ fontSize: 64, fontWeight: 800, color: "#E6F7FF", textShadow: "0 2px 10px rgba(0,0,0,.35)" }}>
-                  {count}
-                </div>
-                <div style={{ marginTop: 6, fontSize: 12, color: "#CFE9FF", opacity: 0.9 }}>Get Ready</div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => { resumeSfx(); setCounting(true); }}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  padding: "12px 16px",
-                  borderRadius: 999,
-                  border: "2px solid #9FE8FF",
-                  background: "#1FD3FF",
-                  color: "#081146",
-                  fontWeight: 700,
-                  boxShadow: "0 6px 18px rgba(0,0,0,.25)",
-                  cursor: "pointer",
-                  fontSize: 24,
-                  letterSpacing: 6,
-                }}
-              >
-                {/* ▶ */}
-                PLAY
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 스코어보드 오버레이 */}
-        {open && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(0,0,0,0.5)",
-              zIndex: 10
-            }}
-            onClick={() => setOpen(false)}
-          >
-            <div
-              ref={boardRef}
-              style={{
-                width: "min(620px,94vw)",
-                maxHeight: "90%",
-                // overflow: "auto",
-                background: "#fff",
-                borderRadius: 12,
-                padding: 16,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <b>Scoreboard</b>
-                <button
-                  onClick={() => setOpen(false)}
-                  style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer" }}
-                >
-                  Close
-                </button>
-              </div>
-              <Scoreboard
-                open={true}
-                records={records}
-                name={name}
-                onNameChange={setName}
-                onClear={onClear}
-                fmtMs={fmtMs}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
+    </div >
   );
 }
