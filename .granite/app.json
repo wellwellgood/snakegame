@@ -1,1 +1,29 @@
-{"appName":"snakegame","permissions":[],"_metadata":{"runtimeVersion":"0.72.6","bundleFiles":["bundle.ios.0_72_6.js","bundle.ios.0_72_6.js.map","bundle.android.0_72_6.js","bundle.android.0_72_6.js.map"],"deploymentId":"0199e56e-fade-7818-966a-2068d528a585","packageJson":{"dependencies":{"@apps-in-toss/framework":"1.2.1","@apps-in-toss/web-framework":"1.2.1","react":"18.3.1","react-dom":"18.3.1","react-scripts":"5.0.1","web-vitals":"3.5.2"},"devDependencies":{"cross-env":"7.0.3","react-refresh":"0.14.0","react-scripts":"5.0.1"}}}}
+{
+  "appName": "snakegame",
+  "permissions": [],
+  "_metadata": {
+    "runtimeVersion": "0.72.6",
+    "bundleFiles": [
+      "bundle.ios.0_72_6.js",
+      "bundle.ios.0_72_6.js.map",
+      "bundle.android.0_72_6.js",
+      "bundle.android.0_72_6.js.map"
+    ],
+    "deploymentId": "0199e56e-fade-7818-966a-2068d528a585",
+    "packageJson": {
+      "dependencies": {
+        "@apps-in-toss/framework": "1.2.1",
+        "@apps-in-toss/web-framework": "1.2.1",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "react-scripts": "5.0.1",
+        "web-vitals": "3.5.2"
+      },
+      "devDependencies": {
+        "cross-env": "7.0.3",
+        "react-refresh": "0.14.0",
+        "react-scripts": "5.0.1"
+      }
+    }
+  }
+}
