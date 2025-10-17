@@ -1,37 +1,27 @@
 {
   "name": "snakegame",
   "version": "1.0.0",
-  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
-  "main": "bedrock.config.js",
-  "homepage": ".",
+  "private": true,
+  "description": "Toss-style Snake Game web build for Netlify",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "granite dev",
-    "build": "granite build",
-    "deploy": "ait deploy",
+    "start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start",
+    "dev": "react-scripts start",
+    "build": "react-scripts build",
+    "web:start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start",
     "web:build": "react-scripts build",
-    "start": "npm run web:start",
-    "web:start": "cross-env HOST=0.0.0.0 PORT=8082 react-scripts start"
+    "deploy": "echo \"Use Netlify for deploy\" && exit 0",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@apps-in-toss/web-framework": "1.0.3",
-    "@granite-js/plugin-router": "0.1.21",
-    "@toss-design-system/mobile": "2.1.0",
-    "@toss-design-system/mobile-ait": "2.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-scripts": "^5.0.1",
+    "react-scripts": "5.0.1",
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
-    "@apps-in-toss/cli": "^1.0.0",
-    "@granite-js/cli": "0.1.28",
-    "@granite-js/plugin-router": "0.1.21",
     "cross-env": "^7.0.3",
-    "react-refresh": "0.18.0",
-    "react-scripts": "5.0.1"
+    "react-refresh": "0.18.0"
   },
   "browserslist": {
     "production": [
