@@ -14,7 +14,6 @@
     "build": "npm run build:granite"
   },
   "dependencies": {
-    "@apps-in-toss/web-framework": "1.0.3",
     "@granite-js/plugin-router": "0.1.21",
     "@toss-design-system/mobile": "2.1.0",
     "@toss-design-system/mobile-ait": "2.1.0",
@@ -24,14 +23,23 @@
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
-    "@granite-js/cli": "0.1.28",
     "@apps-in-toss/cli": "^1.0.0",
+    "@apps-in-toss/web-framework": "1.0.3",
+    "@granite-js/cli": "0.1.28",
     "cross-env": "^7.0.3",
     "react-refresh": "0.18.0"
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "engines": {
     "node": ">=18"
