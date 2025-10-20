@@ -44,11 +44,11 @@
   }
 }
 
-.setting-button{
+.settingbtn{
   transform: rotate("0deg");
   transition: all 0.5s linear;
 }
-.setting-button:active{
+.settingbtn:hover{
   transform : rotate("90deg");
   transition: all 0.5s linear;
 }

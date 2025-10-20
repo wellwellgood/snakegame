@@ -3,6 +3,8 @@ import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
+import { granite } from "@apps-in-toss/web-framework";
+import styles from "./App.css"
 
 import ALL from "./img/ALL.png";
 import Setting from "./img/setting.png";
@@ -44,6 +46,13 @@ export default function App() {
     if (typeof window === "undefined") return;
     window.__SNAKE_SFX_MUTED = !sfxOn;
     window.__SNAKE_BGM_MUTED = !bgmOn;
+  }, []);
+
+  
+  // 상단바 제목 설정
+  useEffect(() => {
+    // 앱이 실행될 때 상단바 제목 지정
+    granite.navigation.setTitle?.("스네이크 게임");
   }, []);
 
   // SFX 토글 반영
@@ -197,7 +206,7 @@ export default function App() {
                     top: 10,
                     right: 0,
                   }}>
-                  <div onClick={() => setShowSetting(true)} className="setting-button">
+                  <div onClick={() => setShowSetting(true)} className={styles.settingbtn}>
                     <img src={Setting}
                       style={{
                         width: 50,
@@ -214,7 +223,7 @@ export default function App() {
               {showSetting && (
                 <div
                   onClick={() => setShowSetting(false)}
-                  style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50 }}
+                  style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50 }}
                 >
                   <div
                     onClick={(e) => e.stopPropagation()}
