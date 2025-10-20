@@ -182,7 +182,7 @@ export default function App() {
                   style={{
                     right: 0,
                     width: 60,
-                    height: 60,
+                    height: 58,
                     opacity: fade ? 0 : 1,
                     transition: "opacity 0.8s ease-in-out",
                     willChange: "opacity",

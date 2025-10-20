@@ -1,7 +1,7 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  appName: 'snakegame',
+  appName: 'snake',
   brand: {
     displayName: '스네이크 게임', // 화면에 노출될 앱의 한글 이름으로 바꿔주세요.
     primaryColor: '#3182F6', // 화면에 노출될 앱의 기본 색상으로 바꿔주세요.
