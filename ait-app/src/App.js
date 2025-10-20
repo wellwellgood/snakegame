@@ -3,10 +3,9 @@ import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
-import { granite } from "@apps-in-toss/web-framework";
 import styles from "./App.css"
 
-import ALL from "./img/ALL.png";
+import ALL from "./img/ALL.png"; //연령등급받으면 변경
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3"
 
@@ -46,13 +45,6 @@ export default function App() {
     if (typeof window === "undefined") return;
     window.__SNAKE_SFX_MUTED = !sfxOn;
     window.__SNAKE_BGM_MUTED = !bgmOn;
-  }, []);
-
-  
-  // 상단바 제목 설정
-  useEffect(() => {
-    // 앱이 실행될 때 상단바 제목 지정
-    granite.navigation.setTitle?.("스네이크 게임");
   }, []);
 
   // SFX 토글 반영
