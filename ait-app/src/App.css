@@ -43,3 +43,12 @@
     transform: rotate(360deg);
   }
 }
+
+.setting-button{
+  transform: rotate("0deg");
+  transition: all 0.5s linear;
+}
+.setting-button:active{
+  transform : rotate("90deg");
+  transition: all 0.5s linear;
+}

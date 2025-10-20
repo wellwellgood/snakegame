@@ -197,14 +197,15 @@ export default function App() {
                     top: 10,
                     right: 0,
                   }}>
-                  <div onClick={() => setShowSetting(true)}>
+                  <div onClick={() => setShowSetting(true)} className="setting-button">
                     <img src={Setting}
                       style={{
                         width: 50,
                         height: 50,
                         border: "1px solid #fff",
                         background: "#888",
-                        cursor: "pointer"
+                        cursor: "pointer",
+                        borderRadius: "100px",
                       }} />
                   </div>
                 </div>
