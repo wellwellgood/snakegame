@@ -175,7 +175,7 @@ export default function App() {
           </div>
           <div style={{ position: "relative", marginTop: 10, display: "flex", width: "100%", alignContent: "center", justifyContent: "flex-end" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "abssolute", width: 100 }}>
-              {showLogo && (
+              {/* {showLogo && (
                 <img
                   src={ALL}
                   alt="ALL"
@@ -188,8 +188,8 @@ export default function App() {
                     willChange: "opacity",
                     pointerEvents: "none",
                   }}
-                />
-              )}
+                />  {상단 import{ALL}만 해당 이미지만 변경하면 됨}
+              )} */}
               <div>
                 <div
                   style={{

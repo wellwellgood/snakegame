@@ -17,8 +17,9 @@
     "@granite-js/plugin-router": "0.1.21",
     "@toss-design-system/mobile": "2.1.0",
     "@toss-design-system/mobile-ait": "2.1.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@toss-design-system/react-native": "1.2.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^3.5.2"
   },
