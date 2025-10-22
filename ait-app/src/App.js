@@ -145,7 +145,7 @@ export default function App() {
         <div
           style={{
             position: "absolute",
-            top: 12,
+            top: 100,
             left: "50%",
             transform: "translateX(-50%)",
             width: "90%",
