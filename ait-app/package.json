@@ -19,7 +19,6 @@
     "@toss-design-system/mobile": "2.1.0",
     "@toss-design-system/mobile-ait": "2.1.0",
     "@toss-design-system/react-native": "1.2.1",
-    "@toss-design-system/typography": "0.0.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-scripts": "5.0.1",
@@ -27,7 +26,7 @@
   },
   "devDependencies": {
     "@apps-in-toss/cli": "^1.0.0",
-    "@apps-in-toss/web-framework": "1.2.1",
+    "@apps-in-toss/web-framework": "1.3.0",
     "@granite-js/cli": "0.1.28",
     "cross-env": "^7.0.3",
     "react-refresh": "0.18.0"
