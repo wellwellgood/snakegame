@@ -92,8 +92,6 @@ export default function App() {
     return () => api.setIosSwipeGestureEnabled({ isEnabled: true });
   }, []);
 
-  // 게임 효과음
-  useEffect(() => { initSfx(); }, []);
 
   // 이름 저장
   useEffect(() => {
@@ -236,7 +234,7 @@ export default function App() {
                         aria-pressed={sfxOn}
                         style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: sfxOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
                       >
-                        <span style={{ position: "absolute", top: 3, left: sfxOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .2s" }} />
+                        <span style={{ position: "absolute", top: 3, left: sfxOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .1s" }} />
                       </button>
                     </div>
 
@@ -248,7 +246,7 @@ export default function App() {
                         aria-pressed={bgmOn}
                         style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: bgmOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
                       >
-                        <span style={{ position: "absolute", top: 3, left: bgmOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .2s" }} />
+                        <span style={{ position: "absolute", top: 3, left: bgmOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .1s" }} />
                       </button>
                     </div>
 

@@ -1,6 +1,6 @@
 [build]
 base = "ait-app"
-command = "npm ci --omit=dev --no-audit --no-fund && npm run web:build"
+command = "npm ci --omit=dev --no-audit --no-fund && npm run build:web"
 publish = "ait-app/build"
 
 [build.environment]
