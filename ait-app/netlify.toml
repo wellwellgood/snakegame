@@ -1,8 +1,7 @@
 [build]
 base = "ait-app"
-command = "npm ci --omit=dev --no-audit --no-fund && npm run build:web"
-publish = "ait-app/build"
+command = "npm ci --no-audit --no-fund && npm run build:web"
+publish = "build"
 
 [build.environment]
-NODE_VERSION = "18.20.3"   # 또는 프로젝트가 요구하는 정확 버전
-NPM_FLAGS = "--omit=dev"
+NODE_VERSION = "18.20.3"
