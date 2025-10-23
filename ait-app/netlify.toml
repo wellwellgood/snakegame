@@ -1,7 +1,9 @@
 [build]
 base = "ait-app"
-command = "npm ci --no-audit --no-fund && npm run build:web"
+command = "npm ci --no-audit --no-fund && CI= npm run build:web"
 publish = "build"
 
 [build.environment]
 NODE_VERSION = "18.20.3"
+NODE_OPTIONS = "--max_old_space_size=3072"
+NPM_FLAGS = "--omit=dev"
