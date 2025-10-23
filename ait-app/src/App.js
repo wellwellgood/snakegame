@@ -9,7 +9,8 @@ import ALL from "./img/ALL.png"; //연령등급받으면 변경
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3";
 import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
-// mm:ss.cs (분은 누적표시)
+
+// mm:ss.cs
 const fmtMs = (ms) => {
   const totalMin = Math.floor(ms / 60000);
   const sec = Math.floor(ms / 1000) % 60;
@@ -24,7 +25,7 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const [counting, setCounting] = useState(false);
   const [count, setCount] = useState(3);
-  const [autoStartTick, setAutoStartTick] = useState(0); // 카운트 종료 신호
+  const [autoStartTick, setAutoStartTick] = useState(0);
 
   // 스코어보드
   const [name, setName] = useState(() => localStorage.getItem("snake_name") || "PLAYER");
@@ -39,44 +40,42 @@ export default function App() {
   // Web Audio BGM
   const { play: playBgm, pause: pauseBgm, resume: resumeBgm, stop: stopBgm } = useWebAudioBGM(BGM);
 
-  // 초기 전역 플래그 1회 세팅
+  // 초기 전역 플래그
   useEffect(() => { initSfx(); }, []);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.__SNAKE_SFX_MUTED = !sfxOn;
     window.__SNAKE_BGM_MUTED = !bgmOn;
   }, []);
 
-  // SFX 토글 반영
+  // SFX 토글
   useEffect(() => {
     localStorage.setItem("snake_sfx", sfxOn ? "on" : "off");
     setSfxMuted(!sfxOn);
   }, [sfxOn]);
 
-  // BGM 토글 반영
+  // BGM 토글 상태 저장
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
     window.__SNAKE_BGM_MUTED = !bgmOn;
   }, [bgmOn]);
 
-  // BGM 실제 재생/정지 (Web Audio)
+  // BGM 실제 제어: 일시정지/재개
   const prevOn = useRef(bgmOn);
   useEffect(() => {
     if (bgmOn && !prevOn.current) {
-      resumeBgm().catch(() => { });   // 이어서 재생
+      resumeBgm().catch(() => { });
     }
     if (!bgmOn && prevOn.current) {
-      pauseBgm();                    // 일시정지
+      pauseBgm();
     }
     prevOn.current = bgmOn;
   }, [bgmOn]);
 
-  // 이미지 3초 노출
+  // 로고 페이드
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);
-
   useEffect(() => {
     const t1 = setTimeout(() => setFade(true), 3000);
     const t2 = setTimeout(() => setShowLogo(false), 3800);
@@ -101,12 +100,9 @@ export default function App() {
     localStorage.setItem("snake_name", name);
   }, [name]);
 
-  // onGameOver는 고정 함수로 만들어 중복 기록 방지
+  // onGameOver
   const nameRef = useRef(name);
-  useEffect(() => {
-    nameRef.current = name;
-  }, [name]);
-
+  useEffect(() => { nameRef.current = name; }, [name]);
   const onGameOver = useCallback((rec) => {
     const fixedName = nameRef.current?.toUpperCase().slice(0, 12) || "PLAYER";
     const top = addScore({ ...rec, name: fixedName });
@@ -119,7 +115,7 @@ export default function App() {
     setRecords([]);
   }, []);
 
-  // 카운트다운: 버튼 누르면 시작 → 3,2,1 → 자동 시작
+  // 카운트다운
   useEffect(() => {
     if (!showStart || !counting) return;
     setCount(3);
@@ -139,9 +135,8 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* BGM: Web Audio 사용 → <audio> 제거 */}
+      {/* BGM: Web Audio 사용 → <audio> 없음 */}
 
-      {/* 게임 영역 */}
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -175,14 +170,11 @@ export default function App() {
               {open ? "Hide Score" : "Show Score"}
             </button>
           </div>
+
           <div style={{ position: "relative", marginTop: 10, display: "flex", width: "100%", alignContent: "center", justifyContent: "flex-end" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "abssolute", width: 100 }}>
               <div>
-                <div
-                  style={{
-                    top: 10,
-                    right: 0,
-                  }}>
+                <div style={{ top: 10, right: 0 }}>
                   <div onClick={() => setShowSetting(true)} className={styles.settingbtn}>
                     <img src={Setting}
                       style={{
@@ -196,7 +188,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              {/* ✅ 설정창 오버레이 */}
+
               {showSetting && (
                 <div
                   onClick={() => setShowSetting(false)}
@@ -253,7 +245,6 @@ export default function App() {
           autoStartTick={autoStartTick}
         />
 
-        {/* 시작 오버레이: 버튼 클릭 → 카운트다운 → 자동 시작 */}
         {showStart && (
           <div
             style={{
@@ -305,7 +296,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 스코어보드 오버레이 */}
         {open && (
           <div
             style={{
@@ -352,6 +342,6 @@ export default function App() {
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 }
