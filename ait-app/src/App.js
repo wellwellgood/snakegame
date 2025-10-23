@@ -72,6 +72,20 @@ export default function App() {
   useEffect(() => {
     const a = bgmRef.current;
     if (!a) return;
+
+    const stopBgmHard = () => {
+      try { a.pause(); } catch {}
+      try { a.currentTime = 0; } catch {}
+      try { a.removeAttribute("src"); a.load(); } catch {} // 소스 분리
+      // MediaSession 완전 해제
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.metadata = null; } catch {}
+        try { navigator.mediaSession.playbackState = "none"; } catch {}
+        ["play","pause","stop","seekbackward","seekforward","seekto"].forEach(k=>{
+          try { navigator.mediaSession.setActionHandler(k, null); } catch {}
+        });
+      }
+    };
   
     const pauseBgm = () => {
       a.pause();
@@ -110,7 +124,7 @@ export default function App() {
       window.removeEventListener("pageshow", handlePageShow);
     };
   }, [bgmOn]);
-  
+
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);
