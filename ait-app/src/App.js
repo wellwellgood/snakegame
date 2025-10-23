@@ -68,6 +68,40 @@ export default function App() {
     else a.pause();
   }, [bgmOn]);
 
+  // BGM 백그라운드 제어어
+  useEffect(() => {
+    const a = bgmRef.current;
+    if (!a) return;
+    if(bgmOn) a.play().catch(() => {});
+    else a.pause();
+  }, [bgmOn]);
+
+  useEffect(() => {
+    const a = bgmRef.current;
+    if (!a) return;
+
+    const handleVisiblityChange = async () => {
+      if(document.visibilityState === "hidden"){
+        a.pause();
+        a.currentTime = 0;
+        a.src() = '';
+        a.load();
+      } else {
+        if(bgmOn) {
+          a.src = BGM;
+          a.load();
+          a.play().catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisiblityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisiblityChange);
+    }
+  }, [bgmOn]);
+
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);

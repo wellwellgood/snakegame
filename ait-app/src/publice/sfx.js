@@ -32,3 +32,18 @@ export function playEat() {
   src.connect(gain).connect(ctx.destination);
   src.start(0);
 }
+
+//백그라운드 전환시 BMG 
+document.addEventListener("visibilitychange", async() => {
+  if (!ctx) return;
+
+  if(document.visibilityState === 'hidden'){
+    try {
+      await ctx.suspend();
+    } catch {}
+  } else {
+    try {
+      await ctx.resume();
+    } catch {}
+  }
+});
