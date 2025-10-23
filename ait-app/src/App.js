@@ -3,12 +3,12 @@ import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
-import styles from "./App.css"
+import styles from "./App.css";
 
 import ALL from "./img/ALL.png"; //연령등급받으면 변경
 import Setting from "./img/setting.png";
-import BGM from "./publice/assets/Pixel Parade.mp3"
-
+import BGM from "./publice/assets/Pixel Parade.mp3";
+import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
 
 // mm:ss.cs (분은 누적표시)
 const fmtMs = (ms) => {
@@ -36,7 +36,9 @@ export default function App() {
   const [showSetting, setShowSetting] = useState(false);
   const [sfxOn, setSfxOn] = useState(() => localStorage.getItem("snake_sfx") !== "off");
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
-  const bgmRef = useRef(null);
+
+  // Web Audio BGM
+  const { play: playBgm, stop: stopBgm } = useWebAudioBGM(BGM);
 
   // 초기 전역 플래그 1회 세팅
   useEffect(() => { initSfx(); }, []);
@@ -60,78 +62,19 @@ export default function App() {
     window.__SNAKE_BGM_MUTED = !bgmOn;
   }, [bgmOn]);
 
-  // BGM 실제 재생/정지
+  // BGM 실제 재생/정지 (Web Audio)
   useEffect(() => {
-    const a = bgmRef.current;
-    if (!a) return;
-    if (bgmOn) a.play().catch(() => { });
-    else a.pause();
-  }, [bgmOn]);
-
-  // BGM 백그라운드 제어
-  useEffect(() => {
-    const a = bgmRef.current;
-    if (!a) return;
-
-    const stopBgmHard = () => {
-      try { a.pause(); } catch {}
-      try { a.currentTime = 0; } catch {}
-      try { a.removeAttribute("src"); a.load(); } catch {} // 소스 분리
-      // MediaSession 완전 해제
-      if ("mediaSession" in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch {}
-        try { navigator.mediaSession.playbackState = "none"; } catch {}
-        ["play","pause","stop","seekbackward","seekforward","seekto"].forEach(k=>{
-          try { navigator.mediaSession.setActionHandler(k, null); } catch {}
-        });
-      }
-    };
-  
-    const pauseBgm = () => {
-      a.pause();
-      if (navigator.mediaSession) {
-        navigator.mediaSession.playbackState = 'none';
-        navigator.mediaSession.metadata = null;
-      }
-    };
-  
-    const resumeBgm = () => {
-      if (bgmOn && !a.paused) return; // 이미 재생 중이면 스킵
-      if (bgmOn) {
-        a.play().catch(() => {});
-      }
-    };
-  
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        pauseBgm();
-      } else {
-        resumeBgm();
-      }
-    };
-  
-    // ✅ iOS에서 더 빠른 감지
-    const handlePageHide = () => pauseBgm();
-    const handlePageShow = () => resumeBgm();
-  
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("pageshow", handlePageShow);
-  
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }, [bgmOn]);
+    if (bgmOn) playBgm().catch(() => {});
+    else stopBgm();
+  }, [bgmOn, playBgm, stopBgm]);
 
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setFade(true), 3000);   // 3초 후 페이드 시작
-    const t2 = setTimeout(() => setShowLogo(false), 3800); // 0.8초 후 DOM 제거
+    const t1 = setTimeout(() => setFade(true), 3000);
+    const t2 = setTimeout(() => setShowLogo(false), 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -142,13 +85,11 @@ export default function App() {
       (window.ReactNativeWebView ||
         (window.webkit && window.webkit.messageHandlers));
     if (!isAit) return;
-    // AIT 런타임에서만 동작하도록, 외부 패키지 import 불가
     const api = window.__AIT_API__;
     if (!api?.setIosSwipeGestureEnabled) return;
     api.setIosSwipeGestureEnabled({ isEnabled: false });
     return () => api.setIosSwipeGestureEnabled({ isEnabled: true });
   }, []);
-
 
   // 이름 저장
   useEffect(() => {
@@ -193,8 +134,8 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* BGM 영역 */}
-      <audio ref={bgmRef} src={BGM} loop preload="auto" />
+      {/* BGM: Web Audio 사용 → <audio> 제거 */}
+
       {/* 게임 영역 */}
       <div style={{ position: "relative" }}>
         <div
@@ -208,7 +149,7 @@ export default function App() {
             flexDirection: "column",
             justifyContent: "space-between",
             alignItems: "center",
-            zIndex: 30, // 오버레이보다 위
+            zIndex: 30,
           }}
         >
           <div style={{ position: "relative", width: "100%", display: "flex" }}>
@@ -231,25 +172,9 @@ export default function App() {
           </div>
           <div style={{ position: "relative", marginTop: 10, display: "flex", width: "100%", alignContent: "center", justifyContent: "flex-end" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "abssolute", width: 100 }}>
-              {/* {showLogo && (
-                <img
-                  src={ALL}
-                  alt="ALL"
-                  style={{
-                    right: 0,
-                    width: 60,
-                    height: 58,
-                    opacity: fade ? 0 : 1,
-                    transition: "opacity 0.8s ease-in-out",
-                    willChange: "opacity",
-                    pointerEvents: "none",
-                  }}
-                />  {상단 import{ALL}만 해당 이미지만 변경하면 됨}
-              )} */}
               <div>
                 <div
                   style={{
-                    // position: "absolute",
                     top: 10,
                     right: 0,
                   }}>
@@ -331,7 +256,7 @@ export default function App() {
               inset: 0,
               display: "grid",
               placeItems: "center",
-              background: "rgba(2,1,127,0.28)", // 배경 #02017F 톤
+              background: "rgba(2,1,127,0.28)",
               backdropFilter: "blur(8px)",
               WebkitBackdropFilter: "blur(8px)",
               zIndex: 20
@@ -349,7 +274,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (sfxOn) resumeSfx();
-                  if (bgmOn && bgmRef.current) bgmRef.current.play().catch(() => { });
+                  if (bgmOn) playBgm().catch(() => {});
                   setCounting(true);
                 }}
                 style={{
@@ -369,7 +294,6 @@ export default function App() {
                   letterSpacing: 6,
                 }}
               >
-                {/* ▶ */}
                 PLAY
               </button>
             )}
@@ -395,7 +319,6 @@ export default function App() {
               style={{
                 width: "min(620px,94vw)",
                 maxHeight: "90%",
-                // overflow: "auto",
                 background: "#fff",
                 borderRadius: 12,
                 padding: 16,
