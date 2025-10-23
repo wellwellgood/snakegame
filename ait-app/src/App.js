@@ -9,7 +9,6 @@ import ALL from "./img/ALL.png"; //연령등급받으면 변경
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3";
 import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
-
 // mm:ss.cs (분은 누적표시)
 const fmtMs = (ms) => {
   const totalMin = Math.floor(ms / 60000);
@@ -38,7 +37,7 @@ export default function App() {
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
 
   // Web Audio BGM
-  const { play: playBgm, stop: stopBgm } = useWebAudioBGM(BGM);
+  const { play: playBgm, pause: pauseBgm, resume: resumeBgm, stop: stopBgm } = useWebAudioBGM(BGM);
 
   // 초기 전역 플래그 1회 세팅
   useEffect(() => { initSfx(); }, []);
@@ -65,8 +64,12 @@ export default function App() {
   // BGM 실제 재생/정지 (Web Audio)
   const prevOn = useRef(bgmOn);
   useEffect(() => {
-    if (bgmOn && !prevOn.current) playBgm().catch(() => {});
-    if(!bgmOn && prevOn.current) stopBgm();
+    if (bgmOn && !prevOn.current) {
+      resumeBgm().catch(() => { });   // 이어서 재생
+    }
+    if (!bgmOn && prevOn.current) {
+      pauseBgm();                    // 일시정지
+    }
     prevOn.current = bgmOn;
   }, [bgmOn]);
 
@@ -276,7 +279,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (sfxOn) resumeSfx();
-                  if (bgmOn) playBgm().catch(() => {});
+                  if (bgmOn) resumeBgm().catch(() => { });
                   setCounting(true);
                 }}
                 style={{
