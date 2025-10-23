@@ -38,10 +38,10 @@ export function useWebAudioBGM(src) {
   };
 
   const play = async () => {
+    if(nodeRef.current) return;
     await loadOnce();
     const ctx = ensureCtx();
     if (ctx.state === "suspended") await ctx.resume();
-    stop();
     const n = ctx.createBufferSource();
     n.buffer = bufRef.current;
     n.loop = true;

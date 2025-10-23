@@ -63,10 +63,12 @@ export default function App() {
   }, [bgmOn]);
 
   // BGM 실제 재생/정지 (Web Audio)
+  const prevOn = useRef(bgmON);
   useEffect(() => {
-    if (bgmOn) playBgm().catch(() => {});
-    else stopBgm();
-  }, [bgmOn, playBgm, stopBgm]);
+    if (bgmOn && !prevOn.current) playBgm().catch(() => {});
+    if(!bgmOn && prevOn.current) stopBgm();
+    prevOn.current = bgmOn;
+  }, [bgmOn]);
 
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
