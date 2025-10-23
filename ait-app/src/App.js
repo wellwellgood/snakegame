@@ -80,7 +80,7 @@ export default function App() {
     const a = bgmRef.current;
     if (!a) return;
 
-    const handleVisiblityChange = async () => {
+    const handleVisibilityChange = async () => {
       if(document.visibilityState === "hidden"){
         a.pause();
         a.currentTime = 0;
@@ -95,10 +95,10 @@ export default function App() {
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisiblityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisiblityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
   }, [bgmOn]);
 
