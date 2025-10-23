@@ -73,42 +73,44 @@ export default function App() {
     const a = bgmRef.current;
     if (!a) return;
   
-    const stopBgm = () => {
+    const pauseBgm = () => {
+      a.pause();
       if (navigator.mediaSession) {
         navigator.mediaSession.playbackState = 'none';
         navigator.mediaSession.metadata = null;
       }
-      a.pause();
-      a.src = '';
-      a.load();
+    };
+  
+    const resumeBgm = () => {
+      if (bgmOn && !a.paused) return; // 이미 재생 중이면 스킵
+      if (bgmOn) {
+        a.play().catch(() => {});
+      }
     };
   
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        stopBgm();
+        pauseBgm();
       } else {
-        if (bgmOn) {
-          a.src = BGM;
-          a.load();
-          setTimeout(() => a.play().catch(() => {}), 100);
-        }
+        resumeBgm();
       }
     };
   
-    const handlePageHide = () => stopBgm();
-    const handleBeforeUnload = () => stopBgm();
+    // ✅ iOS에서 더 빠른 감지
+    const handlePageHide = () => pauseBgm();
+    const handlePageShow = () => resumeBgm();
   
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pageshow", handlePageShow);
   
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, [bgmOn]);
-
+  
   // 이미지 3초 노출
   const [showLogo, setShowLogo] = useState(true);
   const [fade, setFade] = useState(false);
