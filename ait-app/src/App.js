@@ -84,7 +84,7 @@ export default function App() {
       if(document.visibilityState === "hidden"){
         a.pause();
         a.currentTime = 0;
-        a.src() = '';
+        a.src = '';
         a.load();
       } else {
         if(bgmOn) {
