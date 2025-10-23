@@ -63,7 +63,7 @@ export default function App() {
   }, [bgmOn]);
 
   // BGM 실제 재생/정지 (Web Audio)
-  const prevOn = useRef(bgmON);
+  const prevOn = useRef(bgmOn);
   useEffect(() => {
     if (bgmOn && !prevOn.current) playBgm().catch(() => {});
     if(!bgmOn && prevOn.current) stopBgm();
