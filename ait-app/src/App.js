@@ -68,38 +68,45 @@ export default function App() {
     else a.pause();
   }, [bgmOn]);
 
-  // BGM 백그라운드 제어어
+  // BGM 백그라운드 제어
   useEffect(() => {
     const a = bgmRef.current;
     if (!a) return;
-    if(bgmOn) a.play().catch(() => {});
-    else a.pause();
-  }, [bgmOn]);
-
-  useEffect(() => {
-    const a = bgmRef.current;
-    if (!a) return;
-
-    const handleVisibilityChange = async () => {
-      if(document.visibilityState === "hidden"){
-        a.pause();
-        a.currentTime = 0;
-        a.src = '';
-        a.load();
+  
+    const stopBgm = () => {
+      if (navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+      }
+      a.pause();
+      a.src = '';
+      a.load();
+    };
+  
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stopBgm();
       } else {
-        if(bgmOn) {
+        if (bgmOn) {
           a.src = BGM;
           a.load();
-          a.play().catch(() => {});
+          setTimeout(() => a.play().catch(() => {}), 100);
         }
       }
     };
-
+  
+    const handlePageHide = () => stopBgm();
+    const handleBeforeUnload = () => stopBgm();
+  
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+  
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [bgmOn]);
 
   // 이미지 3초 노출
