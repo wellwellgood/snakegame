@@ -113,6 +113,14 @@ export function useWebAudioBGM(src) {
       pause();
     };
 
+    const onShow = async () => {
+      if (!wasPlayingRef.current) return;
+      try {
+        if (ctxRef.current?.state === "interrupted") createCtx();
+        await resume();
+      } catch {}
+    };
+
     const tryAutoResume = async () => {
       if (!wasPlayingRef.current) return;
       try {
@@ -121,43 +129,52 @@ export function useWebAudioBGM(src) {
       } catch {}
     };
 
-    const onVis =  () => {
-      if(document.hidden) onhide();
-      else {
+    const onVis = () => {
+      if (document.hidden) {
+        onHide();
+      } else {
         tryAutoResume();
-        setTimeout(tryAutoResume, 0);
-        }
-      };
+        setTimeout(tryAutoResume, 100);
+      }
+    };
 
-      document.addEventListener("visibilitychange", onVis);
-      window.addEventListener("pageshow", onShow);
-      window.addEventListener("pagehide", onHide);
-      window.addEventListener("focus", onShow);
-      
-      document.addEventListener("pointerdown", onFirstUserGesture, true);
-      document.addEventListener("touchstart", onFirstUserGesture, true);
-      document.addEventListener("touchend", onFirstUserGesture, true);
-      document.addEventListener("mousedown", onFirstUserGesture, true);
-      document.addEventListener("keydown", onFirstUserGesture, true);
-      document.addEventListener("click", onFirstUserGesture, true);
-      
-      return () => {
-        document.removeEventListener("visibilitychange", onVis);
-        window.removeEventListener("pageshow", onShow);
-        window.removeEventListener("pagehide", onHide);
-        window.removeEventListener("focus", onShow);
-      
-        document.removeEventListener("pointerdown", onFirstUserGesture, true);
-        document.removeEventListener("touchstart", onFirstUserGesture, true);
-        document.removeEventListener("touchend", onFirstUserGesture, true);
-        document.removeEventListener("mousedown", onFirstUserGesture, true);
-        document.removeEventListener("keydown", onFirstUserGesture, true);
-        document.removeEventListener("click", onFirstUserGesture, true);
-      
-        stop();
-        try { ctxRef.current?.close(); } catch {}
-      };
-    }, []);
+    const onFirstUserGesture = async () => {
+      if (!needUserTapRef.current) return;
+      if (!wasPlayingRef.current) return;
+      try {
+        await resume();
+      } catch {}
+    };
+
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener("pagehide", onHide);
+    window.addEventListener("focus", onShow);
+    
+    document.addEventListener("pointerdown", onFirstUserGesture, true);
+    document.addEventListener("touchstart", onFirstUserGesture, true);
+    document.addEventListener("touchend", onFirstUserGesture, true);
+    document.addEventListener("mousedown", onFirstUserGesture, true);
+    document.addEventListener("keydown", onFirstUserGesture, true);
+    document.addEventListener("click", onFirstUserGesture, true);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pageshow", onShow);
+      window.removeEventListener("pagehide", onHide);
+      window.removeEventListener("focus", onShow);
+    
+      document.removeEventListener("pointerdown", onFirstUserGesture, true);
+      document.removeEventListener("touchstart", onFirstUserGesture, true);
+      document.removeEventListener("touchend", onFirstUserGesture, true);
+      document.removeEventListener("mousedown", onFirstUserGesture, true);
+      document.removeEventListener("keydown", onFirstUserGesture, true);
+      document.removeEventListener("click", onFirstUserGesture, true);
+    
+      stop();
+      try { ctxRef.current?.close(); } catch {}
+    };
+  }, []);
 
   return { play, pause, resume, stop };
 }
