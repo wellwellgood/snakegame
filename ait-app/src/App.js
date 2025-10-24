@@ -1,3 +1,4 @@
+// App.js
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import SnakeGame from "./publice/snakeGame.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
@@ -8,7 +9,7 @@ import styles from "./App.css";
 import ALL from "./img/ALL.png"; //연령등급받으면 변경
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3";
-import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
+import { useWebAudioBGM } from "./hooks/useWebAudioBGM"; // 경로는 프로젝트에 맞게
 
 // mm:ss.cs
 const fmtMs = (ms) => {
@@ -65,13 +66,13 @@ export default function App() {
   const prevOn = useRef(bgmOn);
   useEffect(() => {
     if (bgmOn && !prevOn.current) {
-      resumeBgm().catch(() => { });
+      resumeBgm().catch(() => { /* 사용자 제스처 필요 시 버튼에서 재시도 */ });
     }
     if (!bgmOn && prevOn.current) {
       pauseBgm();
     }
     prevOn.current = bgmOn;
-  }, [bgmOn]);
+  }, [bgmOn, resumeBgm, pauseBgm]);
 
   // 로고 페이드
   const [showLogo, setShowLogo] = useState(true);
@@ -270,7 +271,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (sfxOn) resumeSfx();
-                  if (bgmOn) resumeBgm().catch(() => { });
+                  if (bgmOn) resumeBgm().catch(() => {});
                   setCounting(true);
                 }}
                 style={{
