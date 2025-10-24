@@ -1,5 +1,12 @@
+// hooks/useWebAudioBGM.js
 import { useEffect, useRef } from "react";
 
+/**
+ * WebAudio 기반 BGM 훅
+ * - 백그라운드 진입: 즉시 pause + MediaSession 해제 → 다이나믹 아일랜드 숨김
+ * - 복귀: 직전이 재생 상태였으면 이어서 자동 재개
+ * - 최초 자동재생은 브라우저 정책상 사용자 제스처가 필요할 수 있음
+ */
 export function useWebAudioBGM(src) {
   const ctxRef = useRef(null);
   const bufRef = useRef(null);
@@ -22,7 +29,7 @@ export function useWebAudioBGM(src) {
       gainRef.current = ctx.createGain();
       gainRef.current.gain.value = 1.0;
     } else {
-      try { gainRef.current.disconnect(); } catch { }
+      try { gainRef.current.disconnect(); } catch {}
     }
     gainRef.current.connect(ctx.destination);
 
@@ -66,7 +73,7 @@ export function useWebAudioBGM(src) {
   const play = async () => {
     await loadOnce();
     const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch { }
+    try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
     if (ctx.state !== "running") {
       needUserTapRef.current = true;
       throw new Error("requires-user-gesture");
@@ -78,8 +85,8 @@ export function useWebAudioBGM(src) {
     if (!nodeRef.current) return;
     const ctx = ensureCtx();
     pausedOffsetRef.current = Math.max(0, ctx.currentTime - startedAtRef.current);
-    try { nodeRef.current.stop(); } catch { }
-    try { nodeRef.current.disconnect(); } catch { }
+    try { nodeRef.current.stop(); } catch {}
+    try { nodeRef.current.disconnect(); } catch {}
     nodeRef.current = null;
     wasPlayingRef.current = false;
   };
@@ -87,9 +94,8 @@ export function useWebAudioBGM(src) {
   const resume = async () => {
     if (nodeRef.current) return;
     await loadOnce();
-    // if (!ctxRef.current || ctxRef.current.state === "closed" || ctxRef.current.state === "interrupted") createCtx();
     const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch (e) { }
+    try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
     if (ctx.state !== "running") {
       needUserTapRef.current = true;
       throw new Error("requires-user-gesture");
@@ -100,71 +106,69 @@ export function useWebAudioBGM(src) {
 
   const stop = () => {
     wasPlayingRef.current = false;
-    try { nodeRef.current?.stop(); } catch { }
-    try { nodeRef.current?.disconnect(); } catch { }
+    try { nodeRef.current?.stop(); } catch {}
+    try { nodeRef.current?.disconnect(); } catch {}
     nodeRef.current = null;
     pausedOffsetRef.current = 0;
     startedAtRef.current = 0;
   };
 
+  // 백/포그 전환 + 다이내믹 아일랜드 숨김 처리
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const clearMedia = () => {
-      if ('mediaSession' in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch { }
-        try { navigator.mediaSession.playbackState = 'none'; } catch { }
-        ['play', 'pause', 'stop', 'seekbackward', 'seekforward', 'seekto'].forEach(a => {
-          try { navigator.mediaSession.setActionHandler(a, null); } catch { }
+    const clearMediaSession = () => {
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.metadata = null; } catch {}
+        try { navigator.mediaSession.playbackState = "none"; } catch {}
+        ["play","pause","stop","seekbackward","seekforward","seekto"].forEach(k=>{
+          try { navigator.mediaSession.setActionHandler(k, null); } catch {}
         });
       }
     };
 
     const onHide = () => {
-      wasPlayingRef.current = !audio.paused;
-      audio.pause();
-      setInsoundOn(flase);
-      clearMedia();
-      addlog('🌙 백그라운드 - BGM 정지 + MediaSession 해제');
-
-      // ✅ 백그라운드 진입 시 MediaSession 제거 (다이내믹 아일랜드 숨김)
-      if ("mediaSession" in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch { }
-        try { navigator.mediaSession.playbackState = "none"; } catch { }
-        ["play", "pause", "stop", "seekbackward", "seekforward", "seekto"].forEach(k => {
-          try { navigator.mediaSession.setActionHandler(k, null); } catch { }
-        });
-      }
+      wasPlayingRef.current = !!nodeRef.current;
+      pause();                // 위치 유지
+      clearMediaSession();    // 다이내믹 아일랜드 카드 제거
     };
 
     const onShow = async () => {
-      // ✅ 복귀 시 직전 재생 상태만 복원
       if (!wasPlayingRef.current) return;
-      audio.play().then(() => {
-        setInsoundOn(true);
-        addlog('🌞 포그라운드 복귀 - BGM 재생');
-      }).catch(err => {
-        setNeedManualresume(true);
-        addlog('⚠️ 복귀 자동재생 실패: ${err.name}');
-      });
+      try { await resume(); } catch {}
     };
 
-    const onVis = () => document.hidden ? onHide() : onShow();
-  document.addEventListener('visibilitychange', onVis);
-  window.addEventListener('pagehide', onHide, { capture: true });
-  window.addEventListener('blur', onHide);
-  window.addEventListener('pageshow', onShow);
-  window.addEventListener('focus', onShow);
+    const onVis = () => (document.hidden ? onHide() : onShow());
 
-  return () => {
-    document.removeEventListener('visibilitychange', onVis);
-    window.removeEventListener('pagehide', onHide, { capture: true });
-    window.removeEventListener('blur', onHide);
-    window.removeEventListener('pageshow', onShow);
-    window.removeEventListener('focus', onShow);
-  };
-}, []);
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", onHide, { capture: true });
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener("blur", onHide);
+    window.addEventListener("focus", onShow);
 
-  return { play, pause, resume, stop, };
+    // iOS 자동재개 보조: 사용자 제스처 시 재시도
+    const onFirstUserGesture = async () => {
+      if (!needUserTapRef.current) return;
+      if (!wasPlayingRef.current) return;
+      try { await resume(); } catch {}
+    };
+    document.addEventListener("pointerdown", onFirstUserGesture, true);
+    document.addEventListener("touchstart", onFirstUserGesture, true);
+    document.addEventListener("keydown", onFirstUserGesture, true);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", onHide, { capture: true });
+      window.removeEventListener("pageshow", onShow);
+      window.removeEventListener("blur", onHide);
+      window.removeEventListener("focus", onShow);
+
+      document.removeEventListener("pointerdown", onFirstUserGesture, true);
+      document.removeEventListener("touchstart", onFirstUserGesture, true);
+      document.removeEventListener("keydown", onFirstUserGesture, true);
+
+      stop();
+      try { ctxRef.current?.close(); } catch {}
+    };
+  }, []);
+
+  return { play, pause, resume, stop };
 }
