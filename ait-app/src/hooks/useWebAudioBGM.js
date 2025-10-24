@@ -87,9 +87,9 @@ export function useWebAudioBGM(src) {
   const resume = async () => {
     if (nodeRef.current) return;
     await loadOnce();
-    if (!ctxRef.current || ctxRef.current.state === "closed" || ctxRef.current.state === "interrupted") createCtx();
+    // if (!ctxRef.current || ctxRef.current.state === "closed" || ctxRef.current.state === "interrupted") createCtx();
     const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
+    try { if (ctx.state === "suspended") await ctx.resume(); } catch(e) {}
     if (ctx.state !== "running") {
       needUserTapRef.current = true;
       throw new Error("requires-user-gesture");
@@ -111,70 +111,36 @@ export function useWebAudioBGM(src) {
     const onHide = () => {
       wasPlayingRef.current = !!nodeRef.current;
       pause();
-    };
-
-    const onShow = async () => {
-      if (!wasPlayingRef.current) return;
-      try {
-        if (ctxRef.current?.state === "interrupted") createCtx();
-        await resume();
-      } catch {}
-    };
-
-    const tryAutoResume = async () => {
-      if (!wasPlayingRef.current) return;
-      try {
-        if (ctxRef.current?.state === "interrupted") createCtx();
-        await resume();
-      } catch {}
-    };
-
-    const onVis = () => {
-      if (document.hidden) {
-        onHide();
-      } else {
-        tryAutoResume();
-        setTimeout(tryAutoResume, 100);
+  
+      // ✅ 백그라운드 진입 시 MediaSession 제거 (다이내믹 아일랜드 숨김)
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.metadata = null; } catch {}
+        try { navigator.mediaSession.playbackState = "none"; } catch {}
+        ["play","pause","stop","seekbackward","seekforward","seekto"].forEach(k=>{
+          try { navigator.mediaSession.setActionHandler(k, null); } catch {}
+        });
       }
     };
-
-    const onFirstUserGesture = async () => {
-      if (!needUserTapRef.current) return;
+  
+    const onShow = async () => {
+      // ✅ 복귀 시 직전 재생 상태만 복원
       if (!wasPlayingRef.current) return;
-      try {
-        await resume();
-      } catch {}
+      try { await resume(); } catch {}
     };
-
-    document.addEventListener("visibilitychange", onVis);
+  
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) onHide();
+      else onShow();
+    });
+    window.addEventListener("pagehide", onHide, { capture: true });
     window.addEventListener("pageshow", onShow);
-    window.addEventListener("pagehide", onHide);
-    window.addEventListener("focus", onShow);
-    
-    document.addEventListener("pointerdown", onFirstUserGesture, true);
-    document.addEventListener("touchstart", onFirstUserGesture, true);
-    document.addEventListener("touchend", onFirstUserGesture, true);
-    document.addEventListener("mousedown", onFirstUserGesture, true);
-    document.addEventListener("keydown", onFirstUserGesture, true);
-    document.addEventListener("click", onFirstUserGesture, true);
-    
+  
     return () => {
-      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("visibilitychange", () => {});
+      window.removeEventListener("pagehide", onHide, { capture: true });
       window.removeEventListener("pageshow", onShow);
-      window.removeEventListener("pagehide", onHide);
-      window.removeEventListener("focus", onShow);
-    
-      document.removeEventListener("pointerdown", onFirstUserGesture, true);
-      document.removeEventListener("touchstart", onFirstUserGesture, true);
-      document.removeEventListener("touchend", onFirstUserGesture, true);
-      document.removeEventListener("mousedown", onFirstUserGesture, true);
-      document.removeEventListener("keydown", onFirstUserGesture, true);
-      document.removeEventListener("click", onFirstUserGesture, true);
-    
-      stop();
-      try { ctxRef.current?.close(); } catch {}
     };
   }, []);
-
-  return { play, pause, resume, stop };
+  
+  return { play, pause, resume, stop, };
 }
