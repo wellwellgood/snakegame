@@ -121,27 +121,43 @@ export function useWebAudioBGM(src) {
       } catch {}
     };
 
-    const onVis = () => (document.hidden ? onHide() : tryAutoResume());
-    const onTap = async () => {
-      if (needUserTapRef.current) {
-        try { await resume(); } catch {}
-      }
-    };
+    const onVis =  () => {
+      if(document.hidden) onhide();
+      else {
+        tryAutoResume();
+        setTimeout(tryAutoResume, 0);
+        }
+      };
 
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("pageshow", tryAutoResume);
-    document.addEventListener("pointerdown", onTap, true);
-    document.addEventListener("touchend", onTap, true);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("pageshow", tryAutoResume);
-      document.removeEventListener("pointerdown", onTap, true);
-      document.removeEventListener("touchend", onTap, true);
-      stop();
-      try { ctxRef.current?.close(); } catch {}
-    };
-  }, []);
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("pageshow", onShow);
+      window.addEventListener("pagehide", onHide);
+      window.addEventListener("focus", onShow);
+      
+      document.addEventListener("pointerdown", onFirstUserGesture, true);
+      document.addEventListener("touchstart", onFirstUserGesture, true);
+      document.addEventListener("touchend", onFirstUserGesture, true);
+      document.addEventListener("mousedown", onFirstUserGesture, true);
+      document.addEventListener("keydown", onFirstUserGesture, true);
+      document.addEventListener("click", onFirstUserGesture, true);
+      
+      return () => {
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("pageshow", onShow);
+        window.removeEventListener("pagehide", onHide);
+        window.removeEventListener("focus", onShow);
+      
+        document.removeEventListener("pointerdown", onFirstUserGesture, true);
+        document.removeEventListener("touchstart", onFirstUserGesture, true);
+        document.removeEventListener("touchend", onFirstUserGesture, true);
+        document.removeEventListener("mousedown", onFirstUserGesture, true);
+        document.removeEventListener("keydown", onFirstUserGesture, true);
+        document.removeEventListener("click", onFirstUserGesture, true);
+      
+        stop();
+        try { ctxRef.current?.close(); } catch {}
+      };
+    }, []);
 
   return { play, pause, resume, stop };
 }
