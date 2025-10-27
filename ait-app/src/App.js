@@ -271,7 +271,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (sfxOn) resumeSfx();
-                  if (bgmOn) resumeBgm().catch(() => {});
+                  if (bgmOn) playBgm().catch(() => {});
                   setCounting(true);
                 }}
                 style={{

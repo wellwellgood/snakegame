@@ -29,7 +29,7 @@ export function useWebAudioBGM(src) {
       gainRef.current = ctx.createGain();
       gainRef.current.gain.value = 1.0;
     } else {
-      try { gainRef.current.disconnect(); } catch {}
+      try { gainRef.current.disconnect(); } catch { }
     }
     gainRef.current.connect(ctx.destination);
 
@@ -73,7 +73,7 @@ export function useWebAudioBGM(src) {
   const play = async () => {
     await loadOnce();
     const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
+    try { if (ctx.state === "suspended") await ctx.resume(); } catch { }
     if (ctx.state !== "running") {
       needUserTapRef.current = true;
       throw new Error("requires-user-gesture");
@@ -85,8 +85,8 @@ export function useWebAudioBGM(src) {
     if (!nodeRef.current) return;
     const ctx = ensureCtx();
     pausedOffsetRef.current = Math.max(0, ctx.currentTime - startedAtRef.current);
-    try { nodeRef.current.stop(); } catch {}
-    try { nodeRef.current.disconnect(); } catch {}
+    try { nodeRef.current.stop(); } catch { }
+    try { nodeRef.current.disconnect(); } catch { }
     nodeRef.current = null;
     wasPlayingRef.current = false;
   };
@@ -95,7 +95,7 @@ export function useWebAudioBGM(src) {
     if (nodeRef.current) return;
     await loadOnce();
     const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
+    try { if (ctx.state === "suspended") await ctx.resume(); } catch { }
     if (ctx.state !== "running") {
       needUserTapRef.current = true;
       throw new Error("requires-user-gesture");
@@ -106,8 +106,8 @@ export function useWebAudioBGM(src) {
 
   const stop = () => {
     wasPlayingRef.current = false;
-    try { nodeRef.current?.stop(); } catch {}
-    try { nodeRef.current?.disconnect(); } catch {}
+    try { nodeRef.current?.stop(); } catch { }
+    try { nodeRef.current?.disconnect(); } catch { }
     nodeRef.current = null;
     pausedOffsetRef.current = 0;
     startedAtRef.current = 0;
@@ -117,10 +117,10 @@ export function useWebAudioBGM(src) {
   useEffect(() => {
     const clearMediaSession = () => {
       if ("mediaSession" in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch {}
-        try { navigator.mediaSession.playbackState = "none"; } catch {}
-        ["play","pause","stop","seekbackward","seekforward","seekto"].forEach(k=>{
-          try { navigator.mediaSession.setActionHandler(k, null); } catch {}
+        try { navigator.mediaSession.metadata = null; } catch { }
+        try { navigator.mediaSession.playbackState = "none"; } catch { }
+        ["play", "pause", "stop", "seekbackward", "seekforward", "seekto"].forEach(k => {
+          try { navigator.mediaSession.setActionHandler(k, null); } catch { }
         });
       }
     };
@@ -132,9 +132,24 @@ export function useWebAudioBGM(src) {
     };
 
     const onShow = async () => {
+      const ctx = ensureCtx();
+      try {
+        if (ctx.state === "suspended" || ctx.state === 'interrupted') {
+          await ctx.resume();
+        }
+      } catch {
+        if (ctx.state !== 'running') {
+          needUserTapRef.current = true;
+          return;
+        }
+      }
       if (!wasPlayingRef.current) return;
-      try { await resume(); } catch {}
+      try { await resume(); } catch { }
     };
+
+    window.addEventListener('pageshow', () => {
+      setTimeout(onShow, 0);
+    });
 
     const onVis = () => (document.hidden ? onHide() : onShow());
 
@@ -147,12 +162,18 @@ export function useWebAudioBGM(src) {
     // iOS 자동재개 보조: 사용자 제스처 시 재시도
     const onFirstUserGesture = async () => {
       if (!needUserTapRef.current) return;
-      if (!wasPlayingRef.current) return;
-      try { await resume(); } catch {}
+      needUserTapRef.current = false;
+      try { await ensureCtx().resume(); } catch { }
+      try { await resume(); } catch { }
+      document.removeEventListener("pointerdown", onFirstUserGesture, true);
+      document.removeEventListener("touchstart", onFirstUserGesture, true);
+      document.removeEventListener("keydown", onFirstUserGesture, true);
     };
-    document.addEventListener("pointerdown", onFirstUserGesture, true);
-    document.addEventListener("touchstart", onFirstUserGesture, true);
-    document.addEventListener("keydown", onFirstUserGesture, true);
+
+    document.addEventListener('pointerdown', onFirstUserGesture, true);
+    document.addEventListener('touchstart', onFirstUserGesture, true);
+    document.addEventListener('keydown', onFirstUserGesture, true);
+
 
     return () => {
       document.removeEventListener("visibilitychange", onVis);
@@ -166,7 +187,7 @@ export function useWebAudioBGM(src) {
       document.removeEventListener("keydown", onFirstUserGesture, true);
 
       stop();
-      try { ctxRef.current?.close(); } catch {}
+      try { ctxRef.current?.close(); } catch { }
     };
   }, []);
 
