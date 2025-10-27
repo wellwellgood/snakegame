@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
  * - 복귀: 직전이 재생 상태였으면 이어서 자동 재개
  * - 최초 자동재생은 브라우저 정책상 사용자 제스처가 필요할 수 있음
  */
-export function useWebAudioBGM(src) {
+export function useWebAudioBGM(src, sharedCtx) {
   const ctxRef = useRef(null);
   const bufRef = useRef(null);
   const nodeRef = useRef(null);
@@ -21,8 +21,7 @@ export function useWebAudioBGM(src) {
   const CtxCls = () => window.AudioContext || window.webkitAudioContext;
 
   const createCtx = () => {
-    const Ctx = CtxCls();
-    const ctx = new Ctx();
+    const ctx = sharedCtx ?? new (CtxCls())();
     ctxRef.current = ctx;
 
     if (!gainRef.current) {

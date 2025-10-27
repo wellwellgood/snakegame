@@ -11,6 +11,7 @@ export async function initSfx() {
     eatBuf = await ctx.decodeAudioData(arr);
   }
 }
+export function getAudioContext() { return ctx; }
 
 export function resumeSfx() {
   ctx?.resume().catch(() => {});
