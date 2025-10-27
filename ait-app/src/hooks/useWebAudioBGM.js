@@ -126,7 +126,7 @@ export function useWebAudioBGM(src) {
     };
 
     const onHide = () => {
-      wasPlayingRef.current = !!nodeRef.current;
+      if (nodeRef.current) wasPlayingRef.current = true;
       pause();                // 위치 유지
       clearMediaSession();    // 다이내믹 아일랜드 카드 제거
     };
@@ -135,6 +135,7 @@ export function useWebAudioBGM(src) {
       const ctx = ensureCtx();
       try {
         if (ctx.state === "suspended" || ctx.state === 'interrupted') {
+          await new Promise(r => setTimeout(r, 120));
           await ctx.resume();
         }
       } catch {
