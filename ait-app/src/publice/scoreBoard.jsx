@@ -1,18 +1,31 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { getUserKeyForGame } from "@apps-in-toss/web-framework"; // ✅ 토스 SDK import
 
 export default function Scoreboard({
   open,
   records,
   name,
-  onNameChange,
+  setName, // onNameChange 대신 setName으로 단순화
   onClear,
   fmtMs,
 }) {
+  useEffect(() => {
+    async function fetchUserKey() {
+      try {
+        const key = await getUserKeyForGame();
+        // 유저키를 그대로 쓰거나 일부만 노출 가능
+        setName(key.slice(0, 8)); // 예: 앞 8자리만 표시
+      } catch (err) {
+        console.error("getUserKeyForGame failed:", err);
+      }
+    }
+    fetchUserKey();
+  }, [setName]);
+
   if (!open) return null;
   return (
     <div
       style={{
-        // width: "min(640px,94vw)",
         background: "#fff",
         border: "1px solid #e5e7eb",
         borderRadius: 12,
@@ -36,6 +49,7 @@ export default function Scoreboard({
         </div>
       </div>
 
+      {/* ✅ Name 필드 자동 표시 */}
       <div
         style={{
           display: "flex",
@@ -44,19 +58,17 @@ export default function Scoreboard({
           marginBottom: 8,
         }}
       >
-        <label style={{ fontSize: 12, opacity: 0.8 }}>Name</label>
+        <label style={{ fontSize: 12, opacity: 0.8 }}>Toss ID</label>
         <input
           value={name}
-          onChange={(e) =>
-            onNameChange(e.target.value.toUpperCase().slice(0, 12))
-          }
-          placeholder="PLAYER"
+          readOnly
           style={{
             flex: "0 1 200px",
             padding: "6px 8px",
             borderRadius: 6,
             border: "1px solid #e5e7eb",
             fontSize: 13,
+            background: "#f9fafb",
           }}
         />
       </div>
@@ -85,10 +97,7 @@ export default function Scoreboard({
               </tr>
             )}
             {records.map((r, i) => (
-              <tr
-                key={`${r.when}-${i}`}
-                style={{ borderTop: "1px solid #eef2f7" }}
-              >
+              <tr key={`${r.when}-${i}`} style={{ borderTop: "1px solid #eef2f7" }}>
                 <td style={td}>{i + 1}</td>
                 <td style={td}>{r.name}</td>
                 <td style={td}>
@@ -103,6 +112,7 @@ export default function Scoreboard({
     </div>
   );
 }
+
 const btn = {
   padding: "6px 10px",
   borderRadius: 6,
