@@ -1,26 +1,40 @@
 // App.js
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import SnakeGame from "./publice/snakeGame.jsx";
-import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
+import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
 import styles from "./App.css";
-
-import ALL from "./img/ALL.png"; //연령등급받으면 변경
+import {
+  getUserKeyForGame,
+  submitGameCenterLeaderBoardScore,
+  openGameCenterLeaderboard,
+} from "@apps-in-toss/web-framework";
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3";
-import { useWebAudioBGM } from "./hooks/useWebAudioBGM"; // 경로는 프로젝트에 맞게
+import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
 
 // mm:ss.cs
 const fmtMs = (ms) => {
+
   const totalMin = Math.floor(ms / 60000);
   const sec = Math.floor(ms / 1000) % 60;
   const cs = Math.floor((ms % 1000) / 10);
   return `${String(totalMin).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
 };
 
+// AIT 환경 판별
+const isAitEnv = () =>
+  typeof window !== "undefined" &&
+  (window.__AIT_API__ || window.ReactNativeWebView || (window.webkit && window.webkit.messageHandlers));
+
 export default function App() {
   const boardRef = useRef(null);
+
+  // 로컬용 로그 확인
+  const [logs, setLogs] = useState([]);
+  const log = (...a) => setLogs(L => [...L.slice(-30), a.join(" ")]);
+
 
   // 시작 오버레이 + 카운트다운
   const [showStart, setShowStart] = useState(true);
@@ -28,7 +42,7 @@ export default function App() {
   const [count, setCount] = useState(3);
   const [autoStartTick, setAutoStartTick] = useState(0);
 
-  // 스코어보드
+  // 스코어보드 상태
   const [name, setName] = useState(() => localStorage.getItem("snake_name") || "PLAYER");
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
@@ -39,9 +53,9 @@ export default function App() {
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
 
   // Web Audio BGM
-  const { play: playBgm, pause: pauseBgm, resume: resumeBgm, stop: stopBgm } = useWebAudioBGM(BGM);
+  const { play: playBgm, pause: pauseBgm, resume: resumeBgm } = useWebAudioBGM(BGM);
 
-  // 초기 전역 플래그
+  // 초기화
   useEffect(() => { initSfx(); }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -57,16 +71,98 @@ export default function App() {
 
   // BGM 토글 상태 저장
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
-    window.__SNAKE_BGM_MUTED = !bgmOn;
-  }, [bgmOn]);
+    if (!isAitEnv()) { log("ENV not AIT"); return; }
 
-  // BGM 실제 제어: 일시정지/재개
+    const raw = (tag, v) => {
+      try { return `${tag} ${JSON.stringify(v)}`; }
+      catch { return `${tag} [circular]`; }
+    };
+
+    const handler = (e) => {
+      const d = e?.detail ?? e ?? {};
+      // 원시 로그
+      log(raw("EV", { keys: Object.keys(e || {}), detailKeys: Object.keys(d || {}) }));
+      log(raw("E", e));
+      log(raw("D", d));
+
+      // 가능한 모든 경로에서 id 시도
+      const id =
+        d.id ??
+        d.buttonId ??
+        d.accessoryId ??
+        d.name ??
+        d.button?.id ??
+        d.accessory?.id ??
+        e?.id;
+
+      log("parsed id:", String(id));
+
+      if (id === "leaderboard") {
+        openGameCenterLeaderboard()
+          .then(() => log("openGameCenterLeaderboard OK"))
+          .catch(err => log("openGameCenterLeaderboard FAIL", err?.message || String(err)));
+      }
+    };
+
+    // 소스 다 붙이기
+    const sources = [window?.tdsEvent, window?.__AIT_API__, window, document].filter(Boolean);
+
+    // 채널 폭넓게
+    const channels = [
+      "navigationAccessoryEvent",
+      "navigationAccessoryButtonClick",
+      "navigationBarAccessoryButtonClicked",
+      "navigationAccessoryButtonTapped",
+      "clickNavigationAccessoryButton",
+      "navigationBarEvent",
+      "message", // postMessage 백업
+    ];
+
+    const unsubs = [];
+    for (const src of sources) {
+      for (const ch of channels) {
+        try {
+          // 함수형
+          const ret = src.addEventListener?.(ch, handler);
+          if (typeof ret === "function") unsubs.push(ret);
+          else unsubs.push(() => src.removeEventListener?.(ch, handler));
+        } catch { }
+        try {
+          // 객체형(onEvent)
+          const ret2 = src.addEventListener?.(ch, { onEvent: handler });
+          if (typeof ret2 === "function") unsubs.push(ret2);
+        } catch { }
+      }
+    }
+
+    return () => { unsubs.forEach(u => { try { u?.(); } catch { } }); };
+  }, []);
+
+  useEffect(() => {
+    const api = window?.__AIT_API__;
+    if (!api?.setNavigationBar) return;
+    // 이미 있으면 SDK가 덮어씀. 없으면 생성.
+    api.setNavigationBar({
+      rightAccessories: [{ id: "leaderboard", label: "리더보드", icon: "trophy" }],
+    });
+  }, []);
+
+
+  //
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "hidden") pauseBgm().catch(()=>{});
+      else if (bgmOn) resumeBgm().catch(()=>{});
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [bgmOn, pauseBgm, resumeBgm]);
+
+  // BGM 제어
   const prevOn = useRef(bgmOn);
   useEffect(() => {
     if (bgmOn && !prevOn.current) {
-      resumeBgm().catch(() => { /* 사용자 제스처 필요 시 버튼에서 재시도 */ });
+      resumeBgm().catch(() => { });
     }
     if (!bgmOn && prevOn.current) {
       pauseBgm();
@@ -74,43 +170,41 @@ export default function App() {
     prevOn.current = bgmOn;
   }, [bgmOn, resumeBgm, pauseBgm]);
 
-  // 로고 페이드
-  const [showLogo, setShowLogo] = useState(true);
-  const [fade, setFade] = useState(false);
+  // iOS 스와이프 제스처 방지(WebView 한정)
   useEffect(() => {
-    const t1 = setTimeout(() => setFade(true), 3000);
-    const t2 = setTimeout(() => setShowLogo(false), 3800);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
-  // iOS 스와이프 제스처 방지
-  useEffect(() => {
-    const isAit =
-      typeof window !== "undefined" &&
-      (window.ReactNativeWebView ||
-        (window.webkit && window.webkit.messageHandlers));
-    if (!isAit) return;
-    const api = window.__AIT_API__;
+    const api = window?.__AIT_API__;
     if (!api?.setIosSwipeGestureEnabled) return;
     api.setIosSwipeGestureEnabled({ isEnabled: false });
     return () => api.setIosSwipeGestureEnabled({ isEnabled: true });
   }, []);
 
-  // 이름 저장
+  // 이름 저장 및 userKey 반영(AIT에서만 호출)
+  useEffect(() => { localStorage.setItem("snake_name", name); }, [name]);
   useEffect(() => {
-    localStorage.setItem("snake_name", name);
-  }, [name]);
+    if (!isAitEnv()) return; // 브라우저에서는 호출 금지
+    getUserKeyForGame()
+      .then((key) => setName(key.slice(0, 8)))
+      .catch(() => { }); // 실패 시 기존 로컬 기본값 유지
+  }, []);
 
-  // onGameOver
+  // 게임 종료 시
   const nameRef = useRef(name);
   useEffect(() => { nameRef.current = name; }, [name]);
-  const onGameOver = useCallback((rec) => {
-    const fixedName = nameRef.current?.toUpperCase().slice(0, 12) || "PLAYER";
+
+  const onGameOver = useCallback(async (rec) => {
+    try {
+      // 점수 제출은 AIT일 때만 시도
+      if (isAitEnv()) await submitGameCenterLeaderBoardScore({ score: String(rec.score) });
+    } catch (e) {
+      console.error(e);
+    }
+    const fixedName = (nameRef.current?.toUpperCase().slice(0, 12)) || "PLAYER";
     const top = addScore({ ...rec, name: fixedName });
     setRecords(top);
     setOpen(true);
   }, []);
 
+  // 점수 초기화
   const onClear = useCallback(() => {
     clearScores();
     setRecords([]);
@@ -136,8 +230,6 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* BGM: Web Audio 사용 → <audio> 없음 */}
-
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -177,7 +269,8 @@ export default function App() {
               <div>
                 <div style={{ top: 10, right: 0 }}>
                   <div onClick={() => setShowSetting(true)} className={styles.settingbtn}>
-                    <img src={Setting}
+                    <img
+                      src={Setting}
                       style={{
                         width: 50,
                         height: 50,
@@ -185,7 +278,8 @@ export default function App() {
                         background: "#888",
                         cursor: "pointer",
                         borderRadius: "100px",
-                      }} />
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -271,7 +365,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (sfxOn) resumeSfx();
-                  if (bgmOn) playBgm().catch(() => {});
+                  if (bgmOn) playBgm().catch(() => { });
                   setCounting(true);
                 }}
                 style={{
@@ -342,6 +436,12 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+      <div style={{
+        position: "fixed", right: 8, bottom: 8, width: 320, maxHeight: "40vh",
+        background: "rgba(0,0,0,.7)", color: "#0ff", fontSize: 11, padding: 8, borderRadius: 8, overflow: "auto", zIndex: 9999
+      }}>
+        {logs.map((l, i) => <div key={i}>{l}</div>)}
       </div>
     </div>
   );

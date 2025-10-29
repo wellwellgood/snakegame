@@ -1,195 +1,80 @@
-// hooks/useWebAudioBGM.js
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
-/**
- * WebAudio 기반 BGM 훅
- * - 백그라운드 진입: 즉시 pause + MediaSession 해제 → 다이나믹 아일랜드 숨김
- * - 복귀: 직전이 재생 상태였으면 이어서 자동 재개
- * - 최초 자동재생은 브라우저 정책상 사용자 제스처가 필요할 수 있음
- */
-export function useWebAudioBGM(src, sharedCtx) {
+export function useWebAudioBGM(url) {
   const ctxRef = useRef(null);
-  const bufRef = useRef(null);
-  const nodeRef = useRef(null);
+  const srcRef = useRef(null);
   const gainRef = useRef(null);
-
-  const wasPlayingRef = useRef(false);
-  const startedAtRef = useRef(0);
-  const pausedOffsetRef = useRef(0);
-  const needUserTapRef = useRef(false);
-
-  const CtxCls = () => window.AudioContext || window.webkitAudioContext;
-
-  const createCtx = () => {
-    const ctx = sharedCtx ?? new (CtxCls())();
-    ctxRef.current = ctx;
-
-    if (!gainRef.current) {
-      gainRef.current = ctx.createGain();
-      gainRef.current.gain.value = 1.0;
-    } else {
-      try { gainRef.current.disconnect(); } catch { }
-    }
-    gainRef.current.connect(ctx.destination);
-
-    ctx.onstatechange = () => {
-      if (ctx.state === "interrupted" || ctx.state === "suspended") {
-        needUserTapRef.current = true;
-      }
-    };
-
-    return ctx;
-  };
+  const bufRef = useRef(null);
 
   const ensureCtx = () => {
-    if (!ctxRef.current) return createCtx();
-    const st = ctxRef.current.state;
-    if (st === "closed" || st === "interrupted") return createCtx();
-    return ctxRef.current;
+    if (!ctxRef.current || ctxRef.current.state === "closed") {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      ctxRef.current = new AC();
+      gainRef.current = ctxRef.current.createGain();
+      gainRef.current.connect(ctxRef.current.destination);
+    }
   };
 
-  const loadOnce = async () => {
+  const load = useCallback(async () => {
+    ensureCtx();
     if (bufRef.current) return;
-    const ctx = ensureCtx();
-    const res = await fetch(src);
+    const res = await fetch(url);
     const arr = await res.arrayBuffer();
-    bufRef.current = await ctx.decodeAudioData(arr);
-  };
+    bufRef.current = await ctxRef.current.decodeAudioData(arr);
+  }, [url]);
 
-  const _startAt = (offsetSec = 0) => {
-    const ctx = ensureCtx();
-    const n = ctx.createBufferSource();
-    n.buffer = bufRef.current;
-    n.loop = true;
-    n.connect(gainRef.current);
-    const dur = bufRef.current?.duration || 1;
-    n.start(0, offsetSec % dur);
-    nodeRef.current = n;
-    startedAtRef.current = ctx.currentTime - offsetSec;
-    wasPlayingRef.current = true;
-  };
-
-  const play = async () => {
-    await loadOnce();
-    const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch { }
-    if (ctx.state !== "running") {
-      needUserTapRef.current = true;
-      throw new Error("requires-user-gesture");
+  const play = useCallback(async () => {
+    ensureCtx();
+    await load();
+    // 기존 소스 정리
+    if (srcRef.current) {
+      try { srcRef.current.stop(0); } catch {}
+      try { srcRef.current.disconnect(); } catch {}
+      srcRef.current = null;
     }
-    _startAt(pausedOffsetRef.current || 0);
-  };
+    // 새 소스 시작
+    srcRef.current = ctxRef.current.createBufferSource();
+    srcRef.current.buffer = bufRef.current;
+    srcRef.current.loop = true;
+    srcRef.current.connect(gainRef.current);
+    if (ctxRef.current.state === "suspended") await ctxRef.current.resume();
+    srcRef.current.start(0);
+  }, [load]);
 
-  const pause = () => {
-    if (!nodeRef.current) return;
-    const ctx = ensureCtx();
-    pausedOffsetRef.current = Math.max(0, ctx.currentTime - startedAtRef.current);
-    try { nodeRef.current.stop(); } catch { }
-    try { nodeRef.current.disconnect(); } catch { }
-    nodeRef.current = null;
-    wasPlayingRef.current = false;
-  };
+  const pause = useCallback(async () => {
+    if (!ctxRef.current) return;
+    if (ctxRef.current.state === "running") await ctxRef.current.suspend();
+  }, []);
 
-  const resume = async () => {
-    if (nodeRef.current) return;
-    await loadOnce();
-    const ctx = ensureCtx();
-    try { if (ctx.state === "suspended") await ctx.resume(); } catch { }
-    if (ctx.state !== "running") {
-      needUserTapRef.current = true;
-      throw new Error("requires-user-gesture");
+  const resume = useCallback(async () => {
+    ensureCtx();
+    if (ctxRef.current.state === "suspended") await ctxRef.current.resume();
+  }, []);
+
+  const stop = useCallback(async () => {
+    if (srcRef.current) {
+      try { srcRef.current.stop(0); } catch {}
+      try { srcRef.current.disconnect(); } catch {}
+      srcRef.current = null;
     }
-    _startAt(pausedOffsetRef.current || 0);
-    needUserTapRef.current = false;
-  };
+    // 컨텍스트는 닫지 않는다. close() 금지
+  }, []);
 
-  const stop = () => {
-    wasPlayingRef.current = false;
-    try { nodeRef.current?.stop(); } catch { }
-    try { nodeRef.current?.disconnect(); } catch { }
-    nodeRef.current = null;
-    pausedOffsetRef.current = 0;
-    startedAtRef.current = 0;
-  };
+  const setVolume = useCallback((v) => {
+    ensureCtx();
+    if (gainRef.current) gainRef.current.gain.value = v;
+  }, []);
 
-  // 백/포그 전환 + 다이내믹 아일랜드 숨김 처리
   useEffect(() => {
-    const clearMediaSession = () => {
-      if ("mediaSession" in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch { }
-        try { navigator.mediaSession.playbackState = "none"; } catch { }
-        ["play", "pause", "stop", "seekbackward", "seekforward", "seekto"].forEach(k => {
-          try { navigator.mediaSession.setActionHandler(k, null); } catch { }
-        });
-      }
-    };
-
-    const onHide = () => {
-      if (nodeRef.current) wasPlayingRef.current = true;
-      pause();                // 위치 유지
-      clearMediaSession();    // 다이내믹 아일랜드 카드 제거
-    };
-
-    const onShow = async () => {
-      const ctx = ensureCtx();
-      try {
-        if (ctx.state === "suspended" || ctx.state === 'interrupted') {
-          await new Promise(r => setTimeout(r, 120));
-          await ctx.resume();
-        }
-      } catch {
-        if (ctx.state !== 'running') {
-          needUserTapRef.current = true;
-          return;
-        }
-      }
-      if (!wasPlayingRef.current) return;
-      try { await resume(); } catch { }
-    };
-
-    window.addEventListener('pageshow', () => {
-      setTimeout(onShow, 0);
-    });
-
-    const onVis = () => (document.hidden ? onHide() : onShow());
-
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("pagehide", onHide, { capture: true });
-    window.addEventListener("pageshow", onShow);
-    window.addEventListener("blur", onHide);
-    window.addEventListener("focus", onShow);
-
-    // iOS 자동재개 보조: 사용자 제스처 시 재시도
-    const onFirstUserGesture = async () => {
-      if (!needUserTapRef.current) return;
-      needUserTapRef.current = false;
-      try { await ensureCtx().resume(); } catch { }
-      try { await resume(); } catch { }
-      document.removeEventListener("pointerdown", onFirstUserGesture, true);
-      document.removeEventListener("touchstart", onFirstUserGesture, true);
-      document.removeEventListener("keydown", onFirstUserGesture, true);
-    };
-
-    document.addEventListener('pointerdown', onFirstUserGesture, true);
-    document.addEventListener('touchstart', onFirstUserGesture, true);
-    document.addEventListener('keydown', onFirstUserGesture, true);
-
-
     return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("pagehide", onHide, { capture: true });
-      window.removeEventListener("pageshow", onShow);
-      window.removeEventListener("blur", onHide);
-      window.removeEventListener("focus", onShow);
-
-      document.removeEventListener("pointerdown", onFirstUserGesture, true);
-      document.removeEventListener("touchstart", onFirstUserGesture, true);
-      document.removeEventListener("keydown", onFirstUserGesture, true);
-
-      stop();
-      try { ctxRef.current?.close(); } catch { }
+      try { srcRef.current?.stop(0); } catch {}
+      try {
+        if (ctxRef.current && ctxRef.current.state !== "closed") {
+          ctxRef.current.close();
+        }
+      } catch {}
     };
   }, []);
 
-  return { play, pause, resume, stop };
+  return { play, pause, resume, stop, setVolume };
 }

@@ -1,5 +1,6 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
+
 export default defineConfig({
   appName: 'snake',
   brand: {
@@ -19,4 +20,15 @@ export default defineConfig({
   },
   permissions: [],
   outdir: 'build',
+  navigationBar: {
+    withBackButton: true,
+    withHomeButton: false,
+    initialAccessoryButton: {
+      id: 'leaderboard',
+      title: '리더보드',
+      icon: {
+        name: 'icon-trophy-mono',
+      },
+    },
+  },
 });
