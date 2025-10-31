@@ -1,5 +1,8 @@
-import React, { useEffect } from "react";
+// scoreBoard.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import { getUserKeyForGame } from "@apps-in-toss/web-framework"; // ✅ 토스 SDK import
+
+const PAGE_SIZE = 10;
 
 export default function Scoreboard({
   open,
@@ -9,20 +12,38 @@ export default function Scoreboard({
   onClear,
   fmtMs,
 }) {
+  // ✅ Toss ID 로드
   useEffect(() => {
     async function fetchUserKey() {
       try {
         const key = await getUserKeyForGame();
-        // 유저키를 그대로 쓰거나 일부만 노출 가능
         setName(key.slice(0, 8)); // 예: 앞 8자리만 표시
       } catch (err) {
-        console.error("getUserKeyForGame failed:", err);
+        // console.error("getUserKeyForGame failed:", err);
       }
     }
     fetchUserKey();
   }, [setName]);
 
+  // ✅ 페이지 상태
+  const [page, setPage] = useState(1);
+  const total = records?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // 페이지가 바뀌거나 데이터가 줄어들면 범위 보정
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const pagedRecords = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return (records || []).slice(start, start + PAGE_SIZE);
+  }, [records, page]);
+
   if (!open) return null;
+
+  const startIdx = (page - 1) * PAGE_SIZE; // 전역 순번 오프셋
+
   return (
     <div
       style={{
@@ -33,6 +54,7 @@ export default function Scoreboard({
         marginTop: 12,
       }}
     >
+      {/* 헤더 + 액션 */}
       <div
         style={{
           display: "flex",
@@ -49,7 +71,7 @@ export default function Scoreboard({
         </div>
       </div>
 
-      {/* ✅ Name 필드 자동 표시 */}
+      {/* Toss ID */}
       <div
         style={{
           display: "flex",
@@ -73,6 +95,7 @@ export default function Scoreboard({
         />
       </div>
 
+      {/* 테이블 */}
       <div style={{ overflowX: "auto" }}>
         <table
           style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
@@ -86,19 +109,23 @@ export default function Scoreboard({
             </tr>
           </thead>
           <tbody>
-            {records.length === 0 && (
+            {total === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={4}
                   style={{ ...td, textAlign: "center", padding: "14px 8px" }}
                 >
                   No records yet
                 </td>
               </tr>
             )}
-            {records.map((r, i) => (
-              <tr key={`${r.when}-${i}`} style={{ borderTop: "1px solid #eef2f7" }}>
-                <td style={td}>{i + 1}</td>
+
+            {pagedRecords.map((r, i) => (
+              <tr
+                key={`${r.when}-${startIdx + i}`}
+                style={{ borderTop: "1px solid #eef2f7" }}
+              >
+                <td style={td}>{startIdx + i + 1}</td>
                 <td style={td}>{r.name}</td>
                 <td style={td}>
                   <b>{r.score}</b>
@@ -109,6 +136,37 @@ export default function Scoreboard({
           </tbody>
         </table>
       </div>
+
+      {/* 페이지 컨트롤 */}
+      {total > PAGE_SIZE && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 10,
+          }}
+        >
+          <button
+            style={btn}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Prev
+          </button>
+          <span style={{ fontSize: 12 }}>
+            {page} / {totalPages}
+          </span>
+          <button
+            style={btn}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

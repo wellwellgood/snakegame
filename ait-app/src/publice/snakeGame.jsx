@@ -281,29 +281,26 @@ export default function SnakeGame({
 
   // 탭 비가시성 시 일시정지
   useEffect(() => {
-    async function vis() {
+    let wasRunningRef = running; // 백그라운드 전환 전 상태 저장
+    
+    function vis() {
       if (document.hidden) {
-        // 백그라운드로 갈 때: 일시정지
-        setRunning(false);
+        // 백그라운드로 갈 때: 현재 실행 중이었는지 기억하고 일시정지
+        wasRunningRef = running;
+        if (running) setRunning(false);
       } else {
-        // 포어그라운드로 복귀할 때: AudioContext 미리 깨우기
-        const ctx = getAudioContext();
-        if (ctx && ctx.state === 'suspended') {
-          try {
-            await ctx.resume();
-            console.log('[SnakeGame] AudioContext 복귀 준비 완료');
-          } catch (e) {
-            console.log('[SnakeGame] AudioContext resume 실패:', e?.message);
-          }
+        // 포어그라운드로 복귀할 때: 이전에 실행 중이었다면 자동 재개
+        if (wasRunningRef && started && !gameOver) {
+          setRunning(true);
         }
-        // 게임은 일시정지 상태 유지 (사용자가 Resume 버튼 클릭 필요)
       }
     }
     
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
-  }, []);
+  }, [running, started, gameOver]);
 
+  
   // 그리기
   useEffect(() => {
     const c = canvasRef.current;
