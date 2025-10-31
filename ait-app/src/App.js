@@ -3,174 +3,286 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import SnakeGame from "./publice/snakeGame.jsx";
 import Scoreboard from "./publice/scoreBoard.jsx";
 import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
-import { initSfx, resumeSfx, setSfxMuted } from "./publice/sfx.js";
-import styles from "./App.css";
+import { initSfx, resumeSfx, setSfxMuted, getAudioContext } from "./publice/sfx.js";
+import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
+import styles from "./App.module.css";
 import {
   getUserKeyForGame,
   submitGameCenterLeaderBoardScore,
   openGameCenterLeaderboard,
+  isMinVersionSupported,
+  tdsEvent,
 } from "@apps-in-toss/web-framework";
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/Pixel Parade.mp3";
-import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
 
-// mm:ss.cs
 const fmtMs = (ms) => {
-
   const totalMin = Math.floor(ms / 60000);
   const sec = Math.floor(ms / 1000) % 60;
   const cs = Math.floor((ms % 1000) / 10);
   return `${String(totalMin).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
 };
 
-// AIT 환경 판별
 const isAitEnv = () =>
   typeof window !== "undefined" &&
   (window.__AIT_API__ || window.ReactNativeWebView || (window.webkit && window.webkit.messageHandlers));
 
 export default function App() {
   const boardRef = useRef(null);
-
-  // 로컬용 로그 확인
   const [logs, setLogs] = useState([]);
-  const log = (...a) => setLogs(L => [...L.slice(-30), a.join(" ")]);
+  const log = (...a) => setLogs((L) => [...L.slice(-30), a.join(" ")]);
 
-
-  // 시작 오버레이 + 카운트다운
   const [showStart, setShowStart] = useState(true);
   const [counting, setCounting] = useState(false);
   const [count, setCount] = useState(3);
   const [autoStartTick, setAutoStartTick] = useState(0);
 
-  // 스코어보드 상태
   const [name, setName] = useState(() => localStorage.getItem("snake_name") || "PLAYER");
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
 
-  // 설정창
   const [showSetting, setShowSetting] = useState(false);
   const [sfxOn, setSfxOn] = useState(() => localStorage.getItem("snake_sfx") !== "off");
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
 
-  // Web Audio BGM
-  const { play: playBgm, pause: pauseBgm, resume: resumeBgm } = useWebAudioBGM(BGM);
+  // AudioContext 공유
+  const [sharedCtx, setSharedCtx] = useState(null);
+  const { play: playBgm, pause: pauseBgm, resume: resumeBgm } = useWebAudioBGM(BGM, sharedCtx);
 
-  // 초기화
-  useEffect(() => { initSfx(); }, []);
+  // BGM 재생 상태 추적
+  const isBgmPlayingRef = useRef(false);
+
+  // SFX 초기화 및 AudioContext 공유
+  useEffect(() => {
+    initSfx().then(() => {
+      const ctx = getAudioContext();
+      if (ctx) {
+        setSharedCtx(ctx);
+        log("AudioContext 초기화 완료, state:", ctx.state);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.__SNAKE_SFX_MUTED = !sfxOn;
     window.__SNAKE_BGM_MUTED = !bgmOn;
   }, []);
 
-  // SFX 토글
   useEffect(() => {
     localStorage.setItem("snake_sfx", sfxOn ? "on" : "off");
     setSfxMuted(!sfxOn);
+    log("효과음:", sfxOn ? "ON" : "OFF");
   }, [sfxOn]);
 
-  // BGM 토글 상태 저장
+  // BGM 토글 처리
   useEffect(() => {
-    if (!isAitEnv()) { log("ENV not AIT"); return; }
-
-    const raw = (tag, v) => {
-      try { return `${tag} ${JSON.stringify(v)}`; }
-      catch { return `${tag} [circular]`; }
-    };
-
-    const handler = (e) => {
-      const d = e?.detail ?? e ?? {};
-      // 원시 로그
-      log(raw("EV", { keys: Object.keys(e || {}), detailKeys: Object.keys(d || {}) }));
-      log(raw("E", e));
-      log(raw("D", d));
-
-      // 가능한 모든 경로에서 id 시도
-      const id =
-        d.id ??
-        d.buttonId ??
-        d.accessoryId ??
-        d.name ??
-        d.button?.id ??
-        d.accessory?.id ??
-        e?.id;
-
-      log("parsed id:", String(id));
-
-      if (id === "leaderboard") {
-        openGameCenterLeaderboard()
-          .then(() => log("openGameCenterLeaderboard OK"))
-          .catch(err => log("openGameCenterLeaderboard FAIL", err?.message || String(err)));
-      }
-    };
-
-    // 소스 다 붙이기
-    const sources = [window?.tdsEvent, window?.__AIT_API__, window, document].filter(Boolean);
-
-    // 채널 폭넓게
-    const channels = [
-      "navigationAccessoryEvent",
-      "navigationAccessoryButtonClick",
-      "navigationBarAccessoryButtonClicked",
-      "navigationAccessoryButtonTapped",
-      "clickNavigationAccessoryButton",
-      "navigationBarEvent",
-      "message", // postMessage 백업
-    ];
-
-    const unsubs = [];
-    for (const src of sources) {
-      for (const ch of channels) {
-        try {
-          // 함수형
-          const ret = src.addEventListener?.(ch, handler);
-          if (typeof ret === "function") unsubs.push(ret);
-          else unsubs.push(() => src.removeEventListener?.(ch, handler));
-        } catch { }
-        try {
-          // 객체형(onEvent)
-          const ret2 = src.addEventListener?.(ch, { onEvent: handler });
-          if (typeof ret2 === "function") unsubs.push(ret2);
-        } catch { }
-      }
+    localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
+    log("배경음:", bgmOn ? "ON" : "OFF");
+    
+    if (bgmOn) {
+      playBgm().then(() => {
+        isBgmPlayingRef.current = true;
+        log("BGM 재생 시작");
+      }).catch((err) => {
+        log("BGM 재생 실패:", err?.message);
+      });
+    } else {
+      pauseBgm().then(() => {
+        isBgmPlayingRef.current = false;
+        log("BGM 일시정지");
+      }).catch(() => {});
     }
+  }, [bgmOn, playBgm, pauseBgm]);
 
-    return () => { unsubs.forEach(u => { try { u?.(); } catch { } }); };
+  const handleOpenLeaderboard = useCallback(() => {
+    const isSupported = isMinVersionSupported({ android: "5.221.0", ios: "5.221.0" });
+    if (!isSupported) {
+      log("⚠️ 리더보드는 최소 5.221.0 이상 필요");
+      alert("리더보드는 최소 버전 5.221.0 이상에서 지원됩니다");
+      return;
+    }
+    log("리더보드 웹뷰 열기...");
+    try {
+      openGameCenterLeaderboard();
+    } catch (e) {
+      log("리더보드 열기 실패:", e?.message || String(e));
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isAitEnv()) {
+      log("ENV not AIT");
+      return;
+    }
+    if (!tdsEvent?.addEventListener) {
+      log("tdsEvent missing");
+      return;
+    }
+    const cleanup = tdsEvent.addEventListener("navigationAccessoryEvent", {
+      onEvent: ({ id }) => {
+        log("[nav click]", String(id));
+        if (id === "leaderboard") handleOpenLeaderboard();
+      },
+    });
+    return () => {
+      try {
+        cleanup?.();
+      } catch {}
+    };
+  }, [handleOpenLeaderboard]);
 
   useEffect(() => {
     const api = window?.__AIT_API__;
     if (!api?.setNavigationBar) return;
-    // 이미 있으면 SDK가 덮어씀. 없으면 생성.
     api.setNavigationBar({
       rightAccessories: [{ id: "leaderboard", label: "리더보드", icon: "trophy" }],
     });
   }, []);
 
-
-  //
+  // ✅ 포어그라운드 복귀 처리 (강화)
   useEffect(() => {
-    const onVis = () => {
-      if (document.visibilityState === "hidden") pauseBgm().catch(()=>{});
-      else if (bgmOn) resumeBgm().catch(()=>{});
+    let resumeTimer = null;
+
+    const forceResumeAudio = async () => {
+      const ctx = getAudioContext();
+      
+      log("🔄 오디오 복구 시도, ctx.state:", ctx?.state, "bgmOn:", bgmOn, "sfxOn:", sfxOn);
+      
+      if (!ctx) {
+        log("❌ AudioContext 없음");
+        return;
+      }
+
+      // AudioContext resume
+      if (ctx.state === "suspended") {
+        try {
+          await ctx.resume();
+          log("✅ AudioContext resumed, new state:", ctx.state);
+        } catch (err) {
+          log("❌ AudioContext resume 실패:", err?.message);
+        }
+      } else {
+        log("ℹ️ AudioContext 이미 running:", ctx.state);
+      }
+
+      // BGM resume (켜져있고 이전에 재생 중이었다면)
+      if (bgmOn && isBgmPlayingRef.current) {
+        try {
+          await resumeBgm();
+          log("✅ BGM resumed");
+        } catch (err) {
+          log("❌ BGM resume 실패:", err?.message);
+          // resume 실패 시 재생 시도
+          try {
+            await playBgm();
+            isBgmPlayingRef.current = true;
+            log("✅ BGM 재시작 성공");
+          } catch (e) {
+            log("❌ BGM 재시작 실패:", e?.message);
+          }
+        }
+      }
     };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [bgmOn, pauseBgm, resumeBgm]);
 
-  // BGM 제어
-  const prevOn = useRef(bgmOn);
+    const onVisibilityChange = async () => {
+      const ctx = getAudioContext();
+      
+      if (document.visibilityState === "visible") {
+        log("👁️ 포어그라운드 복귀");
+        
+        // 즉시 시도
+        await forceResumeAudio();
+        
+        // 0.5초 후 재시도 (iOS 대응)
+        resumeTimer = setTimeout(async () => {
+          log("🔄 지연 재시도");
+          await forceResumeAudio();
+        }, 500);
+        
+      } else {
+        log("🌙 백그라운드 전환");
+        
+        if (resumeTimer) {
+          clearTimeout(resumeTimer);
+          resumeTimer = null;
+        }
+        
+        // AudioContext suspend
+        if (ctx && ctx.state === "running") {
+          try {
+            await ctx.suspend();
+            log("⏸️ AudioContext suspended");
+          } catch (err) {
+            log("❌ suspend 실패:", err?.message);
+          }
+        }
+      }
+    };
+
+    const onFocus = async () => {
+      log("🎯 window focus");
+      await forceResumeAudio();
+    };
+
+    const onPageShow = async (e) => {
+      log("📄 pageshow, persisted:", e.persisted);
+      if (e.persisted) {
+        // bfcache에서 복귀
+        await forceResumeAudio();
+      }
+    };
+
+    // 사용자 인터랙션 시 복구
+    const onUserInteraction = async () => {
+      if (document.visibilityState === "visible") {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === "suspended") {
+          log("👆 사용자 인터랙션으로 복구 시도");
+          await forceResumeAudio();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("touchstart", onUserInteraction, { once: true, passive: true });
+    document.addEventListener("click", onUserInteraction, { once: true, passive: true });
+
+    return () => {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("touchstart", onUserInteraction);
+      document.removeEventListener("click", onUserInteraction);
+    };
+  }, [bgmOn, sfxOn, resumeBgm, playBgm]);
+
+  // 디버깅 로그
   useEffect(() => {
-    if (bgmOn && !prevOn.current) {
-      resumeBgm().catch(() => { });
-    }
-    if (!bgmOn && prevOn.current) {
-      pauseBgm();
-    }
-    prevOn.current = bgmOn;
-  }, [bgmOn, resumeBgm, pauseBgm]);
+    const ts = () => new Date().toISOString().split("T")[1].replace("Z", "");
+    const push = (...a) => setLogs((L) => [...L.slice(-50), [ts(), ...a].join(" ")]);
+    const onVis = () => push("visibility", document.visibilityState);
+    const onFocus = () => push("focus");
+    const onBlur = () => push("blur");
+    const onShow = (e) => push("pageshow persisted=", e.persisted);
+    const onHide = (e) => push("pagehide persisted=", e.persisted);
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("pageshow", onShow);
+      window.removeEventListener("pagehide", onHide);
+    };
+  }, []);
 
-  // iOS 스와이프 제스처 방지(WebView 한정)
   useEffect(() => {
     const api = window?.__AIT_API__;
     if (!api?.setIosSwipeGestureEnabled) return;
@@ -178,25 +290,32 @@ export default function App() {
     return () => api.setIosSwipeGestureEnabled({ isEnabled: true });
   }, []);
 
-  // 이름 저장 및 userKey 반영(AIT에서만 호출)
-  useEffect(() => { localStorage.setItem("snake_name", name); }, [name]);
   useEffect(() => {
-    if (!isAitEnv()) return; // 브라우저에서는 호출 금지
+    localStorage.setItem("snake_name", name);
+  }, [name]);
+
+  useEffect(() => {
+    if (!isAitEnv()) return;
     getUserKeyForGame()
       .then((key) => setName(key.slice(0, 8)))
-      .catch(() => { }); // 실패 시 기존 로컬 기본값 유지
+      .catch((err) => {
+        log("getUserKey 실패:", err?.message || String(err));
+      });
   }, []);
 
-  // 게임 종료 시
   const nameRef = useRef(name);
-  useEffect(() => { nameRef.current = name; }, [name]);
+  useEffect(() => {
+    nameRef.current = name;
+  }, [name]);
 
   const onGameOver = useCallback(async (rec) => {
     try {
-      // 점수 제출은 AIT일 때만 시도
-      if (isAitEnv()) await submitGameCenterLeaderBoardScore({ score: String(rec.score) });
-    } catch (e) {
-      console.error(e);
+      if (isAitEnv()) {
+        await submitGameCenterLeaderBoardScore({ score: String(rec.score) });
+        log("리더보드 점수 제출 성공");
+      }
+    } catch (err) {
+      log("리더보드 제출 실패:", err?.message || String(err));
     }
     const fixedName = (nameRef.current?.toUpperCase().slice(0, 12)) || "PLAYER";
     const top = addScore({ ...rec, name: fixedName });
@@ -204,13 +323,11 @@ export default function App() {
     setOpen(true);
   }, []);
 
-  // 점수 초기화
   const onClear = useCallback(() => {
     clearScores();
     setRecords([]);
   }, []);
 
-  // 카운트다운
   useEffect(() => {
     if (!showStart || !counting) return;
     setCount(3);
@@ -229,7 +346,25 @@ export default function App() {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
+      {/* 디버깅 로그 표시 */}
+      <div style={{ 
+        position: "fixed", 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        maxHeight: 150, 
+        overflow: "auto", 
+        background: "rgba(0,0,0,0.8)", 
+        color: "#0f0", 
+        fontSize: 10, 
+        padding: 4,
+        zIndex: 9999,
+        fontFamily: "monospace"
+      }}>
+        {logs.map((l, i) => <div key={i}>{l}</div>)}
+      </div>
+
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -258,26 +393,50 @@ export default function App() {
             </h1>
             <button
               onClick={() => setOpen((v) => !v)}
-              style={{ marginLeft: "auto", padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", fontSize: 13, cursor: "pointer" }}
+              style={{
+                marginLeft: "auto",
+                padding: "6px 10px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 6,
+                background: "#fff",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
             >
               {open ? "Hide Score" : "Show Score"}
             </button>
           </div>
 
-          <div style={{ position: "relative", marginTop: 10, display: "flex", width: "100%", alignContent: "center", justifyContent: "flex-end" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", position: "abssolute", width: 100 }}>
+          <div
+            style={{
+              position: "relative",
+              marginTop: 10,
+              display: "flex",
+              width: "100%",
+              alignContent: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                position: "abssolute",
+              }}
+            >
               <div>
                 <div style={{ top: 10, right: 0 }}>
-                  <div onClick={() => setShowSetting(true)} className={styles.settingbtn}>
+                  <div onClick={() => setShowSetting(true)} className={styles.setingimg}>
                     <img
                       src={Setting}
                       style={{
-                        width: 50,
-                        height: 50,
-                        border: "1px solid #fff",
-                        background: "#888",
+                        width: 40,
+                        height: 40,
+                        border: "1px solid #bbb",
                         cursor: "pointer",
                         borderRadius: "100px",
+                        marginTop: "10px",
                       }}
                     />
                   </div>
@@ -287,46 +446,106 @@ export default function App() {
               {showSetting && (
                 <div
                   onClick={() => setShowSetting(false)}
-                  style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50 }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 50,
+                  }}
                 >
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    style={{ position: "absolute", top: "670%", width: 340, padding: 20, borderRadius: 12, background: "#fff", boxShadow: "0 8px 20px rgba(0,0,0,.3)" }}
+                    style={{
+                      position: "absolute",
+                      top: "670%",
+                      width: 340,
+                      padding: 20,
+                      borderRadius: 12,
+                      background: "#fff",
+                      boxShadow: "0 8px 20px rgba(0,0,0,.3)",
+                    }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <h2 style={{ margin: 0, fontSize: 18 }}>설정</h2>
-                      <button onClick={() => setShowSetting(false)} style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, background: "#eee", cursor: "pointer" }}>
+                      <button
+                        onClick={() => setShowSetting(false)}
+                        style={{
+                          padding: "6px 10px",
+                          border: "1px solid #ddd",
+                          borderRadius: 6,
+                          background: "#eee",
+                          cursor: "pointer",
+                        }}
+                      >
                         닫기
                       </button>
                     </div>
 
-                    {/* 효과음 */}
                     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>효과음</span>
                       <button
-                        onClick={() => setSfxOn(v => !v)}
+                        onClick={() => setSfxOn((v) => !v)}
                         aria-pressed={sfxOn}
-                        style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: sfxOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
+                        style={{
+                          width: 64,
+                          height: 32,
+                          borderRadius: 16,
+                          border: "1px solid #ddd",
+                          background: sfxOn ? "#1fd3ff" : "#e5e7eb",
+                          position: "relative",
+                          cursor: "pointer",
+                        }}
                       >
-                        <span style={{ position: "absolute", top: 3, left: sfxOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .1s" }} />
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: 3,
+                            left: sfxOn ? 34 : 3,
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            background: "#fff",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                            transition: "left .1s",
+                          }}
+                        />
                       </button>
                     </div>
 
-                    {/* 배경음 */}
                     <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>배경음악</span>
                       <button
-                        onClick={() => setBgmOn(v => !v)}
+                        onClick={() => setBgmOn((v) => !v)}
                         aria-pressed={bgmOn}
-                        style={{ width: 64, height: 32, borderRadius: 16, border: "1px solid #ddd", background: bgmOn ? "#1fd3ff" : "#e5e7eb", position: "relative", cursor: "pointer" }}
+                        style={{
+                          width: 64,
+                          height: 32,
+                          borderRadius: 16,
+                          border: "1px solid #ddd",
+                          background: bgmOn ? "#1fd3ff" : "#e5e7eb",
+                          position: "relative",
+                          cursor: "pointer",
+                        }}
                       >
-                        <span style={{ position: "absolute", top: 3, left: bgmOn ? 34 : 3, width: 26, height: 26, borderRadius: 13, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .1s" }} />
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: 3,
+                            left: bgmOn ? 34 : 3,
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            background: "#fff",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                            transition: "left .1s",
+                          }}
+                        />
                       </button>
                     </div>
 
-                    <p style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-                      효과음과 배경음을 개별로 제어합니다.
-                    </p>
+                    <p style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>효과음과 배경음을 개별로 제어합니다.</p>
                   </div>
                 </div>
               )}
@@ -334,11 +553,7 @@ export default function App() {
           </div>
         </div>
 
-        <SnakeGame
-          onGameOver={onGameOver}
-          hideStartUI={showStart}
-          autoStartTick={autoStartTick}
-        />
+        <SnakeGame onGameOver={onGameOver} hideStartUI={showStart} autoStartTick={autoStartTick} />
 
         {showStart && (
           <div
@@ -350,7 +565,7 @@ export default function App() {
               background: "rgba(2,1,127,0.28)",
               backdropFilter: "blur(8px)",
               WebkitBackdropFilter: "blur(8px)",
-              zIndex: 20
+              zIndex: 20,
             }}
           >
             {counting ? (
@@ -363,9 +578,25 @@ export default function App() {
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  if (sfxOn) resumeSfx();
-                  if (bgmOn) playBgm().catch(() => { });
+                onClick={async () => {
+                  const ctx = getAudioContext();
+                  log("PLAY 클릭, ctx.state:", ctx?.state);
+                  
+                  if (sfxOn) {
+                    resumeSfx();
+                    log("SFX resume 호출");
+                  }
+                  
+                  if (bgmOn) {
+                    try {
+                      await playBgm();
+                      isBgmPlayingRef.current = true;
+                      log("BGM play 성공");
+                    } catch (err) {
+                      log("BGM play 실패:", err?.message);
+                    }
+                  }
+                  
                   setCounting(true);
                 }}
                 style={{
@@ -400,7 +631,7 @@ export default function App() {
               alignItems: "center",
               justifyContent: "center",
               background: "rgba(0,0,0,0.5)",
-              zIndex: 10
+              zIndex: 10,
             }}
             onClick={() => setOpen(false)}
           >
@@ -412,7 +643,7 @@ export default function App() {
                 background: "#fff",
                 borderRadius: 12,
                 padding: 16,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -420,28 +651,21 @@ export default function App() {
                 <b>Scoreboard</b>
                 <button
                   onClick={() => setOpen(false)}
-                  style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer" }}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 6,
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
                 >
                   Close
                 </button>
               </div>
-              <Scoreboard
-                open={true}
-                records={records}
-                name={name}
-                onNameChange={setName}
-                onClear={onClear}
-                fmtMs={fmtMs}
-              />
+              <Scoreboard open={true} records={records} name={name} onNameChange={setName} onClear={onClear} fmtMs={fmtMs} />
             </div>
           </div>
         )}
-      </div>
-      <div style={{
-        position: "fixed", right: 8, bottom: 8, width: 320, maxHeight: "40vh",
-        background: "rgba(0,0,0,.7)", color: "#0ff", fontSize: 11, padding: 8, borderRadius: 8, overflow: "auto", zIndex: 9999
-      }}>
-        {logs.map((l, i) => <div key={i}>{l}</div>)}
       </div>
     </div>
   );

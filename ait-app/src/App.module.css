@@ -44,11 +44,7 @@
   }
 }
 
-.settingbtn{
-  transform: rotate("0deg");
-  transition: all 0.5s linear;
-}
-.settingbtn:hover{
+.setingimg:hover{
   transform : rotate("90deg");
   transition: all 0.5s linear;
 }

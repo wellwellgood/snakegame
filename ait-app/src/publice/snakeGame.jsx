@@ -385,8 +385,8 @@ export default function SnakeGame({
         userSelect: "none",
       }}
     >
-      <h1 style={{ fontSize: 18, fontWeight: 600 }}>Snake</h1>
-      <div style={{ display: "flex", gap: 12, fontSize: 12 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600 }}>Snake</h1>
+      <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
         <span>
           Score: <b>{score}</b>
         </span>
