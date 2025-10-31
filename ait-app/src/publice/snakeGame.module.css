@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-.snakeGame{
+.snakeGame {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,6 +14,24 @@
     background: #000;
     color: #fff;
     font-family: "Press Start 2P", system-ui;
-    font-display:swap;
+    font-display: swap;
     font-size: 12px;
+    user-select: none;
+
+    /* 터치 방지 */
+    -webkit-user-select: none;
+    /* 터치 콜아웃(길게 누르면 나오는 메뉴) 방지 */
+    -webkit-touch-callout: none;
+    /* 탭 하이라이트 방지 */
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+canvas {
+    /* 컨텍스트 메뉴 방지 */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    /* 이미지 드래그 방지 */
+    -webkit-user-drag: none;
 }
