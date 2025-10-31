@@ -20,9 +20,13 @@ export default function ScoreboardWrapper({ finalScore, durationMs, fmtMs }) {
   // 2️⃣ 점수 제출 (게임 끝났을 때 호출)
   useEffect(() => {
     if (finalScore > 0) {
-      submitGameCenterLeaderBoardScore({ score: String(finalScore) }).catch(
-        console.error
-      );
+      const id = localStorage.getItem("snake_userId");
+      const key = localStorage.getItem("snake_userKey") || id;
+      submitGameCenterLeaderBoardScore({
+        score: String(finalScore),
+        name: id,
+        userKey: key,
+      }).catch(console.error);
     }
   }, [finalScore]);
 
@@ -42,7 +46,7 @@ export default function ScoreboardWrapper({ finalScore, durationMs, fmtMs }) {
               : entry.userKey.slice(0, 8).toUpperCase(),
           score: Number(entry.score),
           durationMs: 0, // 리더보드는 시간 데이터 없음 → 더미
-          when: i, 
+          when: i,
         }));
         setRecords(formatted);
       } catch (e) {

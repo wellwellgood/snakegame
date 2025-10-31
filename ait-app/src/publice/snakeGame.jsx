@@ -300,7 +300,7 @@ export default function SnakeGame({
     return () => document.removeEventListener("visibilitychange", vis);
   }, [running, started, gameOver]);
 
-  
+
   // 그리기
   useEffect(() => {
     const c = canvasRef.current;
@@ -530,13 +530,13 @@ export default function SnakeGame({
           onClick={() => setTickMs((ms) => Math.max(60, ms - 10))}
           style={btnStyle}
         >
-          Faster
+          +
         </button>
         <button
           onClick={() => setTickMs((ms) => Math.min(300, ms + 10))}
           style={btnStyle}
         >
-          Slower
+          -
         </button>
       </div>
     </div>

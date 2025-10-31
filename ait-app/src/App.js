@@ -6,6 +6,9 @@ import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import { initSfx, resumeSfx, setSfxMuted, getAudioContext } from "./publice/sfx.js";
 import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
 import styles from "./App.module.css";
+import UserLogin from "./publice/Userid.jsx";
+import { resolveUserKeyOrFallback } from "./utill/utills.js";
+
 import {
   getUserKeyForGame,
   submitGameCenterLeaderBoardScore,
@@ -14,7 +17,7 @@ import {
   tdsEvent,
 } from "@apps-in-toss/web-framework";
 import Setting from "./img/setting.png";
-import BGM from "./publice/assets/Pixel Parade.mp3";
+import BGM from "./publice/assets/gameSoundEffect.mp3";
 
 const fmtMs = (ms) => {
   const totalMin = Math.floor(ms / 60000);
@@ -27,10 +30,12 @@ const isAitEnv = () =>
   typeof window !== "undefined" &&
   (window.__AIT_API__ || window.ReactNativeWebView || (window.webkit && window.webkit.messageHandlers));
 
-export default function App() {
+export default function GameScreen({ userId }) {
   const boardRef = useRef(null);
   const [logs, setLogs] = useState([]);
   const log = (...a) => setLogs((L) => [...L.slice(-30), a.join(" ")]);
+
+  const [started, setStarted] = useState(false);
 
   const [showStart, setShowStart] = useState(true);
   const [counting, setCounting] = useState(false);
@@ -40,6 +45,9 @@ export default function App() {
   const [name, setName] = useState(() => localStorage.getItem("snake_name") || "PLAYER");
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
+
+  // 로그인 모달 상태 추가
+  const [showLogin, setShowLogin] = useState(!userId);
 
   const [showSetting, setShowSetting] = useState(false);
   const [sfxOn, setSfxOn] = useState(() => localStorage.getItem("snake_sfx") !== "off");
@@ -51,6 +59,16 @@ export default function App() {
 
   // BGM 재생 상태 추적
   const isBgmPlayingRef = useRef(false);
+
+  // Toss 리더보드 식별용 원본 키
+  const [userKey, setUserKey] = useState("");
+
+  // userId가 변경되면 로그인 모달 닫기
+  useEffect(() => {
+    if (userId) {
+      setShowLogin(false);
+    }
+  }, [userId]);
 
   // SFX 초기화 및 AudioContext 공유
   useEffect(() => {
@@ -81,17 +99,21 @@ export default function App() {
     log("배경음:", bgmOn ? "ON" : "OFF");
 
     if (bgmOn) {
-      playBgm().then(() => {
-        isBgmPlayingRef.current = true;
-        log("BGM 재생 시작");
-      }).catch((err) => {
-        log("BGM 재생 실패:", err?.message);
-      });
+      playBgm()
+        .then(() => {
+          isBgmPlayingRef.current = true;
+          log("BGM 재생 시작");
+        })
+        .catch((err) => {
+          log("BGM 재생 실패:", err?.message);
+        });
     } else {
-      pauseBgm().then(() => {
-        isBgmPlayingRef.current = false;
-        log("BGM 일시정지");
-      }).catch(() => { });
+      pauseBgm()
+        .then(() => {
+          isBgmPlayingRef.current = false;
+          log("BGM 일시정지");
+        })
+        .catch(() => { });
     }
   }, [bgmOn, playBgm, pauseBgm]);
 
@@ -140,7 +162,7 @@ export default function App() {
     });
   }, []);
 
-  // ✅ 포어그라운드 복귀 처리 (iOS 사용자 제스처 필수)
+  // 포어그라운드 복귀 처리
   useEffect(() => {
     let resumeTimer = null;
     let needsUserGesture = false;
@@ -155,13 +177,10 @@ export default function App() {
         return;
       }
 
-      // ✅ 사운드 설정과 무관하게 항상 AudioContext는 깨운다
       if (ctx.state === "suspended") {
         try {
           await ctx.resume();
           log("✅ AudioContext resume 호출, new state:", ctx.state);
-
-          // iOS에서 여전히 suspended면 사용자 제스처 필요
           if (ctx.state === "suspended") {
             needsUserGesture = true;
             log("⚠️ iOS: 사용자 제스처 필요");
@@ -174,14 +193,12 @@ export default function App() {
         log("ℹ️ AudioContext 이미 running:", ctx.state);
       }
 
-      // BGM resume (켜져있고 이전에 재생 중이었다면)
       if (bgmOn && isBgmPlayingRef.current && ctx.state === "running") {
         try {
           await resumeBgm();
           log("✅ BGM resumed");
         } catch (err) {
           log("❌ BGM resume 실패:", err?.message);
-          // resume 실패 시 재생 시도
           try {
             await playBgm();
             isBgmPlayingRef.current = true;
@@ -200,15 +217,12 @@ export default function App() {
         log("👁️ 포어그라운드 복귀");
         needsUserGesture = false;
 
-        // 즉시 시도
         await forceResumeAudio();
 
-        // 0.5초 후 재시도 (iOS 대응)
         resumeTimer = setTimeout(async () => {
           log("🔄 지연 재시도");
           await forceResumeAudio();
         }, 500);
-
       } else {
         log("🌙 백그라운드 전환");
 
@@ -217,8 +231,6 @@ export default function App() {
           resumeTimer = null;
         }
 
-        // ✅ AudioContext는 suspend하지 않음 (모바일 최적화)
-        // 백그라운드에서도 running 유지
         log("ℹ️ AudioContext 유지 (suspend 안 함)");
       }
     };
@@ -229,15 +241,13 @@ export default function App() {
     };
 
     const onPageShow = async (e) => {
-      log("📄 pageshow, persisted:", e.persisted);
+      log("🔄 pageshow, persisted:", e.persisted);
       if (e.persisted) {
-        // bfcache에서 복귀
         await forceResumeAudio();
       }
     };
 
-    // ✅ 사용자 인터랙션 시 복구 (iOS 필수)
-    const onUserInteraction = async (e) => {
+    const onUserInteraction = async () => {
       const ctx = getAudioContext();
       log("👆 사용자 인터랙션, ctx.state:", ctx?.state, "needsGesture:", needsUserGesture);
 
@@ -247,12 +257,11 @@ export default function App() {
             await ctx.resume();
             log("✅ 제스처로 AudioContext resumed, state:", ctx.state);
 
-            // BGM도 재개
             if (bgmOn && isBgmPlayingRef.current) {
               try {
                 await resumeBgm();
                 log("✅ 제스처로 BGM resumed");
-              } catch (err) {
+              } catch {
                 await playBgm();
                 isBgmPlayingRef.current = true;
                 log("✅ 제스처로 BGM 재시작");
@@ -271,7 +280,6 @@ export default function App() {
     window.addEventListener("focus", onFocus);
     window.addEventListener("pageshow", onPageShow);
 
-    // ✅ 여러 제스처 이벤트 등록 (passive: false로 변경)
     document.addEventListener("touchstart", onUserInteraction, { passive: false });
     document.addEventListener("touchend", onUserInteraction, { passive: false });
     document.addEventListener("click", onUserInteraction, { passive: false });
@@ -323,12 +331,23 @@ export default function App() {
     localStorage.setItem("snake_name", name);
   }, [name]);
 
+  // 원본 키와 표시용 이름 세팅
   useEffect(() => {
-    if (!isAitEnv()) return;
+    const id = localStorage.getItem("snake_userId");
+    if (!isAitEnv()) {
+      setUserKey(id);
+      setName(id?.slice(0, 8) || "PLAYER");
+      return;
+    }
     getUserKeyForGame()
-      .then((key) => setName(key.slice(0, 8)))
-      .catch((err) => {
-        log("getUserKey 실패:", err?.message || String(err));
+      .then((key) => {
+        const safeKey = typeof key === "string" ? key : key?.hash || id || "PLAYER";
+        setUserKey(safeKey);
+        setName(id || safeKey.slice(0, 8));
+      })
+      .catch(() => {
+        setUserKey(id || "PLAYER");
+        setName(id || "PLAYER");
       });
   }, []);
 
@@ -337,20 +356,28 @@ export default function App() {
     nameRef.current = name;
   }, [name]);
 
-  const onGameOver = useCallback(async (rec) => {
-    try {
-      if (isAitEnv()) {
-        await submitGameCenterLeaderBoardScore({ score: String(rec.score) });
-        log("리더보드 점수 제출 성공");
+  // 게임 오버 시 점수 제출
+  const onGameOver = useCallback(
+    async (rec) => {
+      try {
+        if (isAitEnv() && userKey) {
+          await submitGameCenterLeaderBoardScore({
+            score: String(rec.score),
+            name: userId,
+            userKey,
+          });
+          log("리더보드 점수 제출 성공");
+        }
+      } catch (err) {
+        log("리더보드 제출 실패:", err?.message || String(err));
       }
-    } catch (err) {
-      log("리더보드 제출 실패:", err?.message || String(err));
-    }
-    const fixedName = (nameRef.current?.toUpperCase().slice(0, 12)) || "PLAYER";
-    const top = addScore({ ...rec, name: fixedName });
-    setRecords(top);
-    setOpen(true);
-  }, []);
+      const fixedName = (nameRef.current?.toUpperCase().slice(0, 12)) || "PLAYER";
+      const top = addScore({ ...rec, name: fixedName });
+      setRecords(top);
+      setOpen(true);
+    },
+    [userId, userKey]
+  );
 
   const onClear = useCallback(() => {
     clearScores();
@@ -376,24 +403,6 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
-      {/* 디버깅 로그 표시 */}
-      {/* <div style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        maxHeight: 150,
-        overflow: "auto",
-        background: "rgba(0,0,0,0.8)",
-        color: "#0f0",
-        fontSize: 10,
-        padding: 4,
-        zIndex: 9999,
-        fontFamily: "monospace"
-      }}>
-        {logs.map((l, i) => <div key={i}>{l}</div>)}
-      </div> */}
-
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -451,7 +460,7 @@ export default function App() {
                 display: "flex",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                position: "abssolute",
+                position: "absolute",
               }}
             >
               <div>
@@ -467,6 +476,7 @@ export default function App() {
                         borderRadius: "100px",
                         marginTop: "10px",
                       }}
+                      alt="settings"
                     />
                   </div>
                 </div>
@@ -584,7 +594,39 @@ export default function App() {
 
         <SnakeGame onGameOver={onGameOver} hideStartUI={showStart} autoStartTick={autoStartTick} />
 
-        {showStart && (
+        {/* 로그인 모달 */}
+        {showLogin && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 100,
+            }}
+          >
+            <div
+              style={{
+                width: "90%",
+                maxWidth: 400,
+                background: "#fff",
+                borderRadius: 16,
+                padding: 24,
+                boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <UserLogin onLoginSuccess={() => setShowLogin(false)} />
+            </div>
+          </div>
+        )}
+
+        {/* START 버튼 화면 */}
+        {showStart && !showLogin && (
           <div
             style={{
               position: "absolute",
@@ -651,6 +693,7 @@ export default function App() {
           </div>
         )}
 
+        {/* 스코어보드 모달 */}
         {open && (
           <div
             style={{
@@ -667,31 +710,54 @@ export default function App() {
             <div
               ref={boardRef}
               style={{
-                width: "min(620px,94vw)",
                 maxHeight: "90%",
+                marginTop: "50px",
                 background: "#fff",
                 borderRadius: 12,
-                padding: 16,
+                padding: 12,
                 boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
               }}
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <b>Scoreboard</b>
-                <button
-                  onClick={() => setOpen(false)}
-                  style={{
-                    padding: "6px 10px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 6,
-                    background: "#fff",
-                    cursor: "pointer",
-                  }}
-                >
-                  Close
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={onClear}
+                    style={{
+                      padding: "6px 10px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 6,
+                      background: "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setOpen(false)}
+                    style={{
+                      padding: "6px 10px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 6,
+                      background: "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <Scoreboard open={true} records={records} name={name} onNameChange={setName} onClear={onClear} fmtMs={fmtMs} />
+
+              <Scoreboard
+                open={true}
+                records={records}
+                name={name}
+                setName={setName}
+                fmtMs={fmtMs}
+                loginId={localStorage.getItem("snake_userId")}
+                userKeyOverride={userKey}
+              />
             </div>
           </div>
         )}

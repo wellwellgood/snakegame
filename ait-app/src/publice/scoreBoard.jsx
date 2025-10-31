@@ -1,36 +1,31 @@
-// scoreBoard.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { getUserKeyForGame } from "@apps-in-toss/web-framework"; // ✅ 토스 SDK import
+import { getUserKeyForGame } from "@apps-in-toss/web-framework";
 
 const PAGE_SIZE = 10;
 
-export default function Scoreboard({
-  open,
-  records,
-  name,
-  setName, // onNameChange 대신 setName으로 단순화
-  onClear,
-  fmtMs,
-}) {
-  // ✅ Toss ID 로드
+export default function Scoreboard({ open, records, name, setName, fmtMs }) {
+  const [tossId, setTossId] = useState("");
+
   useEffect(() => {
-    async function fetchUserKey() {
+    async function loadTossId() {
       try {
+        const id = localStorage.getItem("snake_userId");
         const key = await getUserKeyForGame();
-        setName(key.slice(0, 8)); // 예: 앞 8자리만 표시
-      } catch (err) {
-        // console.error("getUserKeyForGame failed:", err);
+        if (typeof key === "string") setTossId(key.slice(0, 8));
+        else if (key?.hash) setTossId(key.hash.slice(0, 8));
+        else setTossId((id || "PLAYER").slice(0, 8));
+      } catch {
+        const id = localStorage.getItem("snake_userId");
+        setTossId((id || "PLAYER").slice(0, 8));
       }
     }
-    fetchUserKey();
-  }, [setName]);
+    loadTossId();
+  }, []);
 
-  // ✅ 페이지 상태
   const [page, setPage] = useState(1);
   const total = records?.length ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // 페이지가 바뀌거나 데이터가 줄어들면 범위 보정
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
@@ -42,7 +37,7 @@ export default function Scoreboard({
 
   if (!open) return null;
 
-  const startIdx = (page - 1) * PAGE_SIZE; // 전역 순번 오프셋
+  const startIdx = (page - 1) * PAGE_SIZE;
 
   return (
     <div
@@ -54,23 +49,6 @@ export default function Scoreboard({
         marginTop: 12,
       }}
     >
-      {/* 헤더 + 액션 */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
-        <b style={{ fontSize: 14 }}>Scoreboard</b>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={onClear} style={btn}>
-            Clear
-          </button>
-        </div>
-      </div>
-
       {/* Toss ID */}
       <div
         style={{
@@ -80,9 +58,9 @@ export default function Scoreboard({
           marginBottom: 8,
         }}
       >
-        <label style={{ fontSize: 12, opacity: 0.8 }}>Toss ID</label>
+        <label style={{ fontSize: 13, whitespace: "nowrap" }}>Toss ID</label>
         <input
-          value={name}
+          value={tossId}
           readOnly
           style={{
             flex: "0 1 200px",
@@ -119,7 +97,6 @@ export default function Scoreboard({
                 </td>
               </tr>
             )}
-
             {pagedRecords.map((r, i) => (
               <tr
                 key={`${r.when}-${startIdx + i}`}
