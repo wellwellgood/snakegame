@@ -79,7 +79,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("snake_bgm", bgmOn ? "on" : "off");
     log("배경음:", bgmOn ? "ON" : "OFF");
-    
+
     if (bgmOn) {
       playBgm().then(() => {
         isBgmPlayingRef.current = true;
@@ -91,7 +91,7 @@ export default function App() {
       pauseBgm().then(() => {
         isBgmPlayingRef.current = false;
         log("BGM 일시정지");
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [bgmOn, playBgm, pauseBgm]);
 
@@ -128,7 +128,7 @@ export default function App() {
     return () => {
       try {
         cleanup?.();
-      } catch {}
+      } catch { }
     };
   }, [handleOpenLeaderboard]);
 
@@ -140,34 +140,42 @@ export default function App() {
     });
   }, []);
 
-  // ✅ 포어그라운드 복귀 처리 (강화)
+  // ✅ 포어그라운드 복귀 처리 (iOS 사용자 제스처 필수)
   useEffect(() => {
     let resumeTimer = null;
+    let needsUserGesture = false;
 
     const forceResumeAudio = async () => {
       const ctx = getAudioContext();
-      
+
       log("🔄 오디오 복구 시도, ctx.state:", ctx?.state, "bgmOn:", bgmOn, "sfxOn:", sfxOn);
-      
+
       if (!ctx) {
         log("❌ AudioContext 없음");
         return;
       }
 
-      // AudioContext resume
+      // ✅ 사운드 설정과 무관하게 항상 AudioContext는 깨운다
       if (ctx.state === "suspended") {
         try {
           await ctx.resume();
-          log("✅ AudioContext resumed, new state:", ctx.state);
+          log("✅ AudioContext resume 호출, new state:", ctx.state);
+
+          // iOS에서 여전히 suspended면 사용자 제스처 필요
+          if (ctx.state === "suspended") {
+            needsUserGesture = true;
+            log("⚠️ iOS: 사용자 제스처 필요");
+          }
         } catch (err) {
           log("❌ AudioContext resume 실패:", err?.message);
+          needsUserGesture = true;
         }
       } else {
         log("ℹ️ AudioContext 이미 running:", ctx.state);
       }
 
       // BGM resume (켜져있고 이전에 재생 중이었다면)
-      if (bgmOn && isBgmPlayingRef.current) {
+      if (bgmOn && isBgmPlayingRef.current && ctx.state === "running") {
         try {
           await resumeBgm();
           log("✅ BGM resumed");
@@ -187,36 +195,31 @@ export default function App() {
 
     const onVisibilityChange = async () => {
       const ctx = getAudioContext();
-      
+
       if (document.visibilityState === "visible") {
         log("👁️ 포어그라운드 복귀");
-        
+        needsUserGesture = false;
+
         // 즉시 시도
         await forceResumeAudio();
-        
+
         // 0.5초 후 재시도 (iOS 대응)
         resumeTimer = setTimeout(async () => {
           log("🔄 지연 재시도");
           await forceResumeAudio();
         }, 500);
-        
+
       } else {
         log("🌙 백그라운드 전환");
-        
+
         if (resumeTimer) {
           clearTimeout(resumeTimer);
           resumeTimer = null;
         }
-        
-        // AudioContext suspend
-        if (ctx && ctx.state === "running") {
-          try {
-            await ctx.suspend();
-            log("⏸️ AudioContext suspended");
-          } catch (err) {
-            log("❌ suspend 실패:", err?.message);
-          }
-        }
+
+        // ✅ AudioContext는 suspend하지 않음 (모바일 최적화)
+        // 백그라운드에서도 running 유지
+        log("ℹ️ AudioContext 유지 (suspend 안 함)");
       }
     };
 
@@ -233,13 +236,33 @@ export default function App() {
       }
     };
 
-    // 사용자 인터랙션 시 복구
-    const onUserInteraction = async () => {
-      if (document.visibilityState === "visible") {
-        const ctx = getAudioContext();
-        if (ctx && ctx.state === "suspended") {
-          log("👆 사용자 인터랙션으로 복구 시도");
-          await forceResumeAudio();
+    // ✅ 사용자 인터랙션 시 복구 (iOS 필수)
+    const onUserInteraction = async (e) => {
+      const ctx = getAudioContext();
+      log("👆 사용자 인터랙션, ctx.state:", ctx?.state, "needsGesture:", needsUserGesture);
+
+      if (document.visibilityState === "visible" && ctx) {
+        if (ctx.state === "suspended") {
+          try {
+            await ctx.resume();
+            log("✅ 제스처로 AudioContext resumed, state:", ctx.state);
+
+            // BGM도 재개
+            if (bgmOn && isBgmPlayingRef.current) {
+              try {
+                await resumeBgm();
+                log("✅ 제스처로 BGM resumed");
+              } catch (err) {
+                await playBgm();
+                isBgmPlayingRef.current = true;
+                log("✅ 제스처로 BGM 재시작");
+              }
+            }
+
+            needsUserGesture = false;
+          } catch (err) {
+            log("❌ 제스처 resume 실패:", err?.message);
+          }
         }
       }
     };
@@ -247,8 +270,12 @@ export default function App() {
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onFocus);
     window.addEventListener("pageshow", onPageShow);
-    document.addEventListener("touchstart", onUserInteraction, { once: true, passive: true });
-    document.addEventListener("click", onUserInteraction, { once: true, passive: true });
+
+    // ✅ 여러 제스처 이벤트 등록 (passive: false로 변경)
+    document.addEventListener("touchstart", onUserInteraction, { passive: false });
+    document.addEventListener("touchend", onUserInteraction, { passive: false });
+    document.addEventListener("click", onUserInteraction, { passive: false });
+    document.addEventListener("pointerdown", onUserInteraction, { passive: false });
 
     return () => {
       if (resumeTimer) clearTimeout(resumeTimer);
@@ -256,7 +283,9 @@ export default function App() {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("touchstart", onUserInteraction);
+      document.removeEventListener("touchend", onUserInteraction);
       document.removeEventListener("click", onUserInteraction);
+      document.removeEventListener("pointerdown", onUserInteraction);
     };
   }, [bgmOn, sfxOn, resumeBgm, playBgm]);
 
@@ -348,16 +377,16 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
       {/* 디버깅 로그 표시 */}
-      <div style={{ 
-        position: "fixed", 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        maxHeight: 150, 
-        overflow: "auto", 
-        background: "rgba(0,0,0,0.8)", 
-        color: "#0f0", 
-        fontSize: 10, 
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        maxHeight: 150,
+        overflow: "auto",
+        background: "rgba(0,0,0,0.8)",
+        color: "#0f0",
+        fontSize: 10,
         padding: 4,
         zIndex: 9999,
         fontFamily: "monospace"
@@ -581,12 +610,12 @@ export default function App() {
                 onClick={async () => {
                   const ctx = getAudioContext();
                   log("PLAY 클릭, ctx.state:", ctx?.state);
-                  
+
                   if (sfxOn) {
                     resumeSfx();
                     log("SFX resume 호출");
                   }
-                  
+
                   if (bgmOn) {
                     try {
                       await playBgm();
@@ -596,7 +625,7 @@ export default function App() {
                       log("BGM play 실패:", err?.message);
                     }
                   }
-                  
+
                   setCounting(true);
                 }}
                 style={{
