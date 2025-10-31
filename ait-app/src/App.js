@@ -377,7 +377,7 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
       {/* 디버깅 로그 표시 */}
-      <div style={{
+      {/* <div style={{
         position: "fixed",
         bottom: 0,
         left: 0,
@@ -392,7 +392,7 @@ export default function App() {
         fontFamily: "monospace"
       }}>
         {logs.map((l, i) => <div key={i}>{l}</div>)}
-      </div>
+      </div> */}
 
       <div style={{ position: "relative" }}>
         <div

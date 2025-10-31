@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Styles from "./snakeGame.module.css";
-import { playEat } from "./sfx";
+import { playEat, getAudioContext } from "./sfx";
 
 const COLS = 22;
 const ROWS = 22;
@@ -281,9 +281,25 @@ export default function SnakeGame({
 
   // 탭 비가시성 시 일시정지
   useEffect(() => {
-    function vis() {
-      if (document.hidden) setRunning(false);
+    async function vis() {
+      if (document.hidden) {
+        // 백그라운드로 갈 때: 일시정지
+        setRunning(false);
+      } else {
+        // 포어그라운드로 복귀할 때: AudioContext 미리 깨우기
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+          try {
+            await ctx.resume();
+            console.log('[SnakeGame] AudioContext 복귀 준비 완료');
+          } catch (e) {
+            console.log('[SnakeGame] AudioContext resume 실패:', e?.message);
+          }
+        }
+        // 게임은 일시정지 상태 유지 (사용자가 Resume 버튼 클릭 필요)
+      }
     }
+    
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, []);
