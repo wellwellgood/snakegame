@@ -13,10 +13,10 @@ export default function Scoreboard({ open, records, name, setName, fmtMs }) {
         const key = await getUserKeyForGame();
         if (typeof key === "string") setTossId(key.slice(0, 8));
         else if (key?.hash) setTossId(key.hash.slice(0, 8));
-        else setTossId((id || "PLAYER").slice(0, 8));
+        else setTossId((id ||  "PLAYER").slice(0, 8));  // name 우선 사용
       } catch {
         const id = localStorage.getItem("snake_userId");
-        setTossId((id || "PLAYER").slice(0, 8));
+        setTossId(( id || "PLAYER").slice(0, 8));        // name fallback
       }
     }
     loadTossId();
@@ -49,7 +49,7 @@ export default function Scoreboard({ open, records, name, setName, fmtMs }) {
         marginTop: 12,
       }}
     >
-      {/* Toss ID */}
+      {/* Toss ID
       <div
         style={{
           display: "flex",
@@ -71,7 +71,7 @@ export default function Scoreboard({ open, records, name, setName, fmtMs }) {
             background: "#f9fafb",
           }}
         />
-      </div>
+      </div> */}
 
       {/* 테이블 */}
       <div style={{ overflowX: "auto" }}>
@@ -81,7 +81,7 @@ export default function Scoreboard({ open, records, name, setName, fmtMs }) {
           <thead>
             <tr style={{ textAlign: "left", background: "#f8fafc" }}>
               <th style={th}>#</th>
-              <th style={th}>Name</th>
+              {/* <th style={th}>Name</th>   //닉네임 식별자 없음 */}
               <th style={th}>Score</th>
               <th style={th}>Time</th>
             </tr>
@@ -103,7 +103,7 @@ export default function Scoreboard({ open, records, name, setName, fmtMs }) {
                 style={{ borderTop: "1px solid #eef2f7" }}
               >
                 <td style={td}>{startIdx + i + 1}</td>
-                <td style={td}>{r.name}</td>
+                {/* <td style={td}>{r.name}</td> */}
                 <td style={td}>
                   <b>{r.score}</b>
                 </td>
@@ -156,5 +156,5 @@ const btn = {
   fontSize: 13,
   cursor: "pointer",
 };
-const th = { padding: "8px", verticalAlign: "middle" };
-const td = { padding: "8px", verticalAlign: "middle" };
+const th = { padding: "8px", verticalAlign: "middle", textAllign: "center" };
+const td = { padding: "8px", verticalAlign: "middle", textAllign: "center" };

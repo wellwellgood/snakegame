@@ -9,20 +9,24 @@
 .snakeGame {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     flex-direction: column;
-    background: #000;
+    /* 🔹 오락기 배경 전체 적용 */
+    background: url("../img/snake\ background.png") center calc(100% + 100px) no-repeat;
+    background-size: contain;
+    background-color: #000;
+    background-attachment: fixed;
+    /* 화면 꽉 채움 (모바일 9:16 대응) */
+    width: 100%;
+    height: 100dvh;
     color: #fff;
     font-family: "Press Start 2P", system-ui;
     font-display: swap;
     font-size: 12px;
     user-select: none;
-
-    /* 터치 방지 */
+    /* 터치 관련 */
     -webkit-user-select: none;
-    /* 터치 콜아웃(길게 누르면 나오는 메뉴) 방지 */
     -webkit-touch-callout: none;
-    /* 탭 하이라이트 방지 */
     -webkit-tap-highlight-color: transparent;
 }
 

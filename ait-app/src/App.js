@@ -6,10 +6,9 @@ import { addScore, loadScores, clearScores } from "./publice/scoreStorage.jsx";
 import { initSfx, resumeSfx, setSfxMuted, getAudioContext } from "./publice/sfx.js";
 import { useWebAudioBGM } from "./hooks/useWebAudioBGM";
 import styles from "./App.module.css";
-import UserLogin from "./publice/Userid.jsx";
-import { resolveUserKeyOrFallback } from "./utill/utills.js";
 
 import {
+  appLogin,
   getUserKeyForGame,
   submitGameCenterLeaderBoardScore,
   openGameCenterLeaderboard,
@@ -47,8 +46,6 @@ export default function GameScreen({ userId }) {
   const [open, setOpen] = useState(false);
 
   // 로그인 모달 상태 추가
-  const [showLogin, setShowLogin] = useState(!userId);
-
   const [showSetting, setShowSetting] = useState(false);
   const [sfxOn, setSfxOn] = useState(() => localStorage.getItem("snake_sfx") !== "off");
   const [bgmOn, setBgmOn] = useState(() => localStorage.getItem("snake_bgm") === "on");
@@ -62,13 +59,6 @@ export default function GameScreen({ userId }) {
 
   // Toss 리더보드 식별용 원본 키
   const [userKey, setUserKey] = useState("");
-
-  // userId가 변경되면 로그인 모달 닫기
-  useEffect(() => {
-    if (userId) {
-      setShowLogin(false);
-    }
-  }, [userId]);
 
   // SFX 초기화 및 AudioContext 공유
   useEffect(() => {
@@ -333,23 +323,42 @@ export default function GameScreen({ userId }) {
 
   // 원본 키와 표시용 이름 세팅
   useEffect(() => {
-    const id = localStorage.getItem("snake_userId");
+    const id = localStorage.getItem("snake_userId") || "";
     if (!isAitEnv()) {
-      setUserKey(id);
-      setName(id?.slice(0, 8) || "PLAYER");
+      const display = id || "PLAYER";
+      setUserKey(id || "");
+      setName(display);
+      localStorage.setItem("snake_userId", display);
       return;
     }
-    getUserKeyForGame()
+    appLogin()                              // ① 로그인 화면 띄움 (AIT에서만)
+      .catch(() => null)                    // 이미 로그인됐거나 취소해도 계속 진행
+      .then(() => getUserKeyForGame())      // ② 로그인 완료 후 게임용 키 획득
       .then((key) => {
-        const safeKey = typeof key === "string" ? key : key?.hash || id || "PLAYER";
-        setUserKey(safeKey);
-        setName(id || safeKey.slice(0, 8));
+        const raw = typeof key === "string" ? key : key?.hash || "";
+        const display = id || (raw ? raw.slice(0, 8) : "PLAYER");
+        setUserKey(raw);
+        setName(display);
+        localStorage.setItem("snake_userId", display);
+        if (raw) localStorage.setItem("snake_userKey", raw);
       })
       .catch(() => {
-        setUserKey(id || "PLAYER");
-        setName(id || "PLAYER");
+        const display = id || "PLAYER";
+        setUserKey(id || "");
+        setName(display);
+        localStorage.setItem("snake_userId", display);
       });
   }, []);
+
+  const safeGetUserKey = async () => {
+    if (!window.ReactNativeWebView) return null;
+    try {
+      await appLogin();
+      return await getUserKeyForGame();
+    } catch {
+      return null;
+    }
+  };
 
   const nameRef = useRef(name);
   useEffect(() => {
@@ -363,7 +372,7 @@ export default function GameScreen({ userId }) {
         if (isAitEnv() && userKey) {
           await submitGameCenterLeaderBoardScore({
             score: String(rec.score),
-            name: userId,
+            name: (nameRef.current || "PLAYER").slice(0, 12),
             userKey,
           });
           log("리더보드 점수 제출 성공");
@@ -402,7 +411,7 @@ export default function GameScreen({ userId }) {
   }, [showStart, counting]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
+    <div className={styles.main} style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -498,7 +507,8 @@ export default function GameScreen({ userId }) {
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       position: "absolute",
-                      top: "670%",
+                      top: "500%",
+                      right: "50%",
                       width: 340,
                       padding: 20,
                       borderRadius: 12,
@@ -594,39 +604,8 @@ export default function GameScreen({ userId }) {
 
         <SnakeGame onGameOver={onGameOver} hideStartUI={showStart} autoStartTick={autoStartTick} />
 
-        {/* 로그인 모달 */}
-        {showLogin && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              zIndex: 100,
-            }}
-          >
-            <div
-              style={{
-                width: "90%",
-                maxWidth: 400,
-                background: "#fff",
-                borderRadius: 16,
-                padding: 24,
-                boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <UserLogin onLoginSuccess={() => setShowLogin(false)} />
-            </div>
-          </div>
-        )}
-
         {/* START 버튼 화면 */}
-        {showStart && !showLogin && (
+        {showStart && (
           <div
             style={{
               position: "absolute",
