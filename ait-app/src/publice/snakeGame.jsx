@@ -253,7 +253,6 @@ export default function SnakeGame({
         return next;
       }
 
-
       // 이동
       next.shift();
       return next;
@@ -282,7 +281,7 @@ export default function SnakeGame({
   // 탭 비가시성 시 일시정지
   useEffect(() => {
     let wasRunningRef = running; // 백그라운드 전환 전 상태 저장
-    
+
     function vis() {
       if (document.hidden) {
         // 백그라운드로 갈 때: 현재 실행 중이었는지 기억하고 일시정지
@@ -295,11 +294,10 @@ export default function SnakeGame({
         }
       }
     }
-    
+
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, [running, started, gameOver]);
-
 
   // 그리기
   useEffect(() => {
@@ -398,17 +396,19 @@ export default function SnakeGame({
         userSelect: "none",
       }}
     >
-      <h1 style={{ fontSize: 20, fontWeight: 600 }}>Snake</h1>
-      <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
-        <span>
-          Score: <b>{score}</b>
-        </span>
-        <span>
-          Best: <b>{best}</b>
-        </span>
-        <span>
-          Speed: <b>{Math.round(1000 / tickMs)} fps</b>
-        </span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: "50px" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Snake</h1>
+        <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
+          <span>
+            Score: <b>{score}</b>
+          </span>
+          <span>
+            Best: <b>{best}</b>
+          </span>
+          <span>
+            Speed: <b>{Math.round(1000 / tickMs)} fps</b>
+          </span>
+        </div>
       </div>
 
       <div
@@ -547,7 +547,8 @@ const btnStyle = {
   padding: "6px 10px",
   borderRadius: 6,
   border: "1px solid #e5e7eb",
-  background: "#fff",
+  background: "#000",
   fontSize: 13,
+  color: "#00ff0a",
   cursor: "pointer",
 };

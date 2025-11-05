@@ -12,14 +12,14 @@
     justify-content: flex-end;
     flex-direction: column;
     /* 🔹 오락기 배경 전체 적용 */
-    background: url("../img/snake\ background.png") center calc(100% + 100px) no-repeat;
-    background-size: contain;
+    background: url("../img/snake\ background.png") center calc(100% + 5px) no-repeat;
+    background-size: cover;
     background-color: #000;
     background-attachment: fixed;
     /* 화면 꽉 채움 (모바일 9:16 대응) */
     width: 100%;
     height: 100dvh;
-    color: #fff;
+    color: #00ff0a;
     font-family: "Press Start 2P", system-ui;
     font-display: swap;
     font-size: 12px;
