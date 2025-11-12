@@ -15,6 +15,7 @@ import {
   isMinVersionSupported,
   tdsEvent,
 } from "@apps-in-toss/web-framework";
+import ALL from "./img/ALL.png";
 import Setting from "./img/setting.png";
 import BGM from "./publice/assets/gameSoundEffect.mp3";
 
@@ -35,6 +36,9 @@ export default function GameScreen({ userId }) {
   const log = (...a) => setLogs((L) => [...L.slice(-30), a.join(" ")]);
 
   const [started, setStarted] = useState(false);
+  const [showALL, setShowAll] = useState(true);
+  const [fadeOut, setFadeOut] = useState(false);
+
 
   const [showStart, setShowStart] = useState(true);
   const [counting, setCounting] = useState(false);
@@ -287,6 +291,16 @@ export default function GameScreen({ userId }) {
     };
   }, [bgmOn, sfxOn, resumeBgm, playBgm]);
 
+  // 연령이미지 3초 노출
+  useEffect(() => {
+    const t1 = setTimeout(() => setFadeOut(true), 2500);  // 2.5초 후 서서히 사라짐 시작
+    const t2 = setTimeout(() => setShowAll(false), 3000); // 3초 후 완전히 제거
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
   // 디버깅 로그
   useEffect(() => {
     const ts = () => new Date().toISOString().split("T")[1].replace("Z", "");
@@ -473,7 +487,20 @@ export default function GameScreen({ userId }) {
               }}
             >
               <div>
-                <div style={{ top: 10, right: 0 }}>
+                <div style={{ top: 10, right: 0, display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+                  {showALL && (
+                    <div style={{ transition: "opacity 0.5s ease",}}>
+                      <img
+                        src={ALL}
+                        alt="all"
+                        style={{
+                          width: 40,
+                          height: 40,
+                          marginTop: "10px",
+                        }}
+                      />
+                    </div>
+                  )}
                   <div onClick={() => setShowSetting(true)} className={styles.setingimg}>
                     <img
                       src={Setting}
