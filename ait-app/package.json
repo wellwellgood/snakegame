@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@apps-in-toss/cli": "^1.0.0",
-    "@apps-in-toss/web-framework": "1.4.3",
+    "@apps-in-toss/web-framework": "1.4.6", 
     "@granite-js/cli": "0.1.28",
     "cross-env": "^7.0.3"
   },
