@@ -424,6 +424,32 @@ export default function GameScreen({ userId }) {
     return () => clearInterval(id);
   }, [showStart, counting]);
 
+
+  //pinch zoom 방지
+  useEffect(() => {
+    const blockPinch = (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    const blockGesture = (e) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener("touchmove", blockPinch, { passive: false });
+    document.addEventListener("gesturestart", blockGesture);
+    document.addEventListener("gesturechange", blockGesture);
+    document.addEventListener("gestureend", blockGesture);
+
+    return () => {
+      document.removeEventListener("touchmove", blockPinch);
+      document.removeEventListener("gesturestart", blockGesture);
+      document.removeEventListener("gesturechange", blockGesture);
+      document.removeEventListener("gestureend", blockGesture);
+    };
+  }, []);
+
   return (
     <div className={styles.main} style={{ display: "flex", flexDirection: "column", isolation: "isolate" }}>
       <div style={{ position: "relative" }}>
@@ -489,7 +515,7 @@ export default function GameScreen({ userId }) {
               <div>
                 <div style={{ top: 10, right: 0, display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
                   {showALL && (
-                    <div style={{ transition: "opacity 0.5s ease",}}>
+                    <div style={{ transition: "opacity 0.5s ease", }}>
                       <img
                         src={ALL}
                         alt="all"
