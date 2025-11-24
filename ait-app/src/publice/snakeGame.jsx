@@ -397,7 +397,7 @@ export default function SnakeGame({
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: "50px" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Snake</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Score</h1>
         <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
           <span>
             Score: <b>{score}</b>

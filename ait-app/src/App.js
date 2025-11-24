@@ -48,6 +48,7 @@ export default function GameScreen({ userId }) {
   const [name, setName] = useState(() => localStorage.getItem("snake_name") || "PLAYER");
   const [records, setRecords] = useState(() => loadScores());
   const [open, setOpen] = useState(false);
+  const [showHowTo, setShowHowTo] = useState(false);
 
   // 로그인 모달 상태 추가
   const [showSetting, setShowSetting] = useState(false);
@@ -456,7 +457,7 @@ export default function GameScreen({ userId }) {
         <div
           style={{
             position: "absolute",
-            top: 100,
+            top: 20,
             left: "50%",
             transform: "translateX(-50%)",
             width: "90%",
@@ -470,34 +471,74 @@ export default function GameScreen({ userId }) {
           <div style={{ position: "relative", width: "100%", display: "flex" }}>
             <h1
               style={{
-                fontFamily: "PressStart2P, monospace",
                 fontSize: 20,
                 color: "#E6F7FF",
                 textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                display: "inline-block",
+                width: "auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                whiteSpace: "nowrap",
               }}
             >
-              <b style={{ fontSize: 20, fontFamily: "Press Start 2P" }}>Snake Game</b>
+              Snake Game
             </h1>
-            <button
-              onClick={() => setOpen((v) => !v)}
+            <div
               style={{
-                marginLeft: "auto",
-                padding: "6px 10px",
-                border: "1px solid #e5e7eb",
-                borderRadius: 6,
-                background: "#fff",
-                fontSize: 13,
-                cursor: "pointer",
+                position: "relative",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
               }}
             >
-              {open ? "Hide Score" : "Show Score"}
-            </button>
+              <h1
+                style={{
+                  fontFamily: "PressStart2P, monospace",
+                  fontSize: 20,
+                  color: "#E6F7FF",
+                  textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                }}
+              >
+              </h1>
+
+              {/* 오른쪽 버튼 영역 */}
+              <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowHowTo(true)}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 100,
+                    background: "#e2e2e2",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  ?
+                </button>
+
+                <button
+                  onClick={() => setOpen((v) => !v)}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 6,
+                    background: "#fff",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  {open ? "Hide Score" : "Show Score"}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div
             style={{
               position: "relative",
-              marginTop: 10,
               display: "flex",
               width: "100%",
               alignContent: "center",
@@ -722,6 +763,81 @@ export default function GameScreen({ userId }) {
                 PLAY
               </button>
             )}
+          </div>
+        )}
+        {/* 게임 방법 모달 */}
+        {showHowTo && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.5)",
+              zIndex: 99999,
+            }}
+            onClick={() => setShowHowTo(false)}
+          >
+            <div
+              style={{
+                width: "85%",
+                maxWidth: 360,
+                background: "#ffffff",
+                borderRadius: 12,
+                padding: 16,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <b style={{ fontSize: 16 }}>게임 방법</b>
+                <button
+                  onClick={() => setShowHowTo(false)}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #e5e7eb",
+                    background: "#f9fafb",
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  닫기
+                </button>
+              </div>
+
+              <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>
+                <p style={{ marginTop: 0, marginBottom: 6 }}>
+                  뱀을 움직여 먹이를 먹고, 벽과 자기 몸을 피해서 최대한 오래 버티는 게임입니다.
+                </p>
+
+                <p style={{ margin: "6px 0 2px" }}>조작 방법</p>
+                <ul style={{ paddingLeft: 18, margin: "0 0 6px" }}>
+                  <li>모바일: 게임 안 파란화면을 스와이프해서 이동</li>
+                </ul>
+
+                <p style={{ margin: "6px 0 2px" }}>규칙</p>
+                <ul style={{ paddingLeft: 18, margin: "0 0 6px" }}>
+                  <li>먹이를 먹을 때마다 길이가 늘어나고 점수가 올라갑니다.</li>
+                  <li>벽이나 자기 몸에 닿으면 게임 오버입니다.</li>
+                </ul>
+
+                <p style={{ margin: "6px 0 2px" }}>기타</p>
+                <ul style={{ paddingLeft: 18, margin: 0 }}>
+                  <li>PLAY 버튼을 누르면 3초 카운트다운 후 시작됩니다.</li>
+                  <li>게임이 끝나면 Scoreboard에서 기록을 확인할 수 있습니다.</li>
+                  <li>우측 상단 설정 아이콘에서 효과음/배경음 On/Off를 바꿀 수 있습니다.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
 

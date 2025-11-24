@@ -12,7 +12,7 @@
     justify-content: flex-end;
     flex-direction: column;
     /* 🔹 오락기 배경 전체 적용 */
-    background: url("../img/snake\ background.png") center calc(100% + 5px) no-repeat;
+    background: url("../img/back.png") center center no-repeat;
     background-size: cover;
     background-color: #000;
     background-attachment: fixed;
