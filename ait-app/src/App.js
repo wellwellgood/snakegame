@@ -457,7 +457,7 @@ export default function GameScreen({ userId }) {
         <div
           style={{
             position: "absolute",
-            top: 20,
+            top: 100,
             left: "50%",
             transform: "translateX(-50%)",
             width: "90%",
@@ -798,7 +798,7 @@ export default function GameScreen({ userId }) {
                   marginBottom: 8,
                 }}
               >
-                <b style={{ fontSize: 16 }}>게임 방법</b>
+                <h1 style={{ fontSize: 16 }}>게임 방법</h1>
                 <button
                   onClick={() => setShowHowTo(false)}
                   style={{
@@ -824,13 +824,11 @@ export default function GameScreen({ userId }) {
                   <li>모바일: 게임 안 파란화면을 스와이프해서 이동</li>
                 </ul>
 
-                <p style={{ margin: "6px 0 2px" }}>규칙</p>
+                <h2 style={{ margin: "6px 0 2px" }}>규칙</h2>
                 <ul style={{ paddingLeft: 18, margin: "0 0 6px" }}>
                   <li>먹이를 먹을 때마다 길이가 늘어나고 점수가 올라갑니다.</li>
                   <li>벽이나 자기 몸에 닿으면 게임 오버입니다.</li>
                 </ul>
-
-                <p style={{ margin: "6px 0 2px" }}>기타</p>
                 <ul style={{ paddingLeft: 18, margin: 0 }}>
                   <li>PLAY 버튼을 누르면 3초 카운트다운 후 시작됩니다.</li>
                   <li>게임이 끝나면 Scoreboard에서 기록을 확인할 수 있습니다.</li>
